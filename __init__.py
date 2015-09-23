@@ -213,16 +213,24 @@ class MainWindow(object):
             cmds.deleteUI(existing)
         if items:
             for item in items:
+                exists = cmds.objExists(item)
                 cmds.rowLayout(
                     nc=2,
                     adj=2,
-                    bgc=(0.2,0.2,0.2) if cmds.objExists(item) else (1,0.4,0.4),
+                    bgc=(0.2,0.2,0.2) if exists else (1,0.4,0.4),
                     p=listElement)
+                if exists and cmds.objectType(item) == "joint":
+                    icon = "joint.svg"
+                elif exists:
+                    icon = "cube.png"
+                else:
+                    icon = "menuIconConstraints.png"
+
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
-                    i="joint.svg" if cmds.objectType(item) == "joint" else "cube.png",
-                    h=25,
-                    w=25,
+                    i=icon,
+                    h=20,
+                    w=20,
                     l=item
                 )
                 cmds.text(
