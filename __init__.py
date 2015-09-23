@@ -184,8 +184,8 @@ class MainWindow(object):
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="selectByObject.png",
-            l="Use selected objects for export.",
-            c=lambda: s.setExportSelection(selWrapper, cmds.ls(sl=True))
+            l="Add selected objects to export.",
+            c=lambda: s.addExportSelection(selWrapper, cmds.ls(sl=True))
             )
         selWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
         cmds.setParent("..")
@@ -203,20 +203,33 @@ class MainWindow(object):
         cmds.showWindow(s.window)
     def save(s):
         saveInfo(s.dataName, s.data)
-    def setExportSelection(s, listElement, items):
-        s.data["objs"] = items
-        s.save()
-        s.displayExportSelection(listElement, items)
+    def addExportSelection(s, listElement, items):
+        if items:
+            for item in items:
+                if item not in s.data["objs"]:
+                    print "Adding object:", item
+                    s.data["objs"].append(item)
+            s.save()
+            s.displayExportSelection(listElement, s.data["objs"])
+        else:
+            cmds.confirmDialog(t="Oh no!", m="You need to select something.")
+    def removeExportSelection(s, listElement, item):
+        if cmds.layout(listElement, ex=True):
+            cmds.deleteUI(listElement)
+        if item in s.data["objs"]:
+            s.data["objs"].remove(item)
+            s.save()
+        print "Removing Export Object:", item
     def displayExportSelection(s, listElement, items):
         existing = cmds.layout(listElement, q=True, ca=True)
         if existing:
             cmds.deleteUI(existing)
         if items:
-            for item in items:
+            def addSel(item):
                 exists = cmds.objExists(item)
-                cmds.rowLayout(
-                    nc=2,
-                    adj=2,
+                row = cmds.rowLayout(
+                    nc=3,
+                    adj=3,
                     bgc=(0.2,0.2,0.2) if exists else (1,0.4,0.4),
                     p=listElement)
                 if exists and cmds.objectType(item) == "joint":
@@ -225,7 +238,11 @@ class MainWindow(object):
                     icon = "cube.png"
                 else:
                     icon = "menuIconConstraints.png"
-
+                cmds.iconTextButton(
+                    st="iconOnly",
+                    i="removeRenderable.png",
+                    c=lambda: s.removeExportSelection(row, item)
+                )
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
                     i=icon,
@@ -237,6 +254,9 @@ class MainWindow(object):
                     l=item,
                     al="left",
                 )
+            for item in items:
+                addSel(item)
+
     def addAnimation(s, listElement):
         print "add new animation"
     def addExportFolder(s, listElement):
