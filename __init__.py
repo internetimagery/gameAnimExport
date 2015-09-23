@@ -173,24 +173,27 @@ class MainWindow(object):
             l="Animation Prefix: ",
             tx=s.data["pref"],
             adj=1,
+            ann="Choose a name to prefix all animation exports.",
             tcc=lambda x:s.changePrefix(prefix, x)
         )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="animateSweep.png",
             l="Add a new Animation.",
+            ann="Create a new animation listing.",
             c=lambda: s.addAnimation(animWrapper)
             )
         animWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
         cmds.setParent("..")
         cmds.button(
             l="Export All",
-            c=s.performExport
+            c=lambda x: [s.performExport(a) for a in s.animationData]
         )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="selectByObject.png",
             l="Add selected objects to export.",
+            ann="Select some objects (typically the rig) and press the button to add them.",
             c=lambda: s.addExportSelection(selWrapper, cmds.ls(sl=True))
             )
         selWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
@@ -203,6 +206,7 @@ class MainWindow(object):
             st="iconAndTextHorizontal",
             i="menuIconFile.png",
             l="Add folder for exporting.",
+            ann="Pick some folders to export animations into. Folders that don't exist will be skipped.",
             c=lambda: s.addExportFolder(dirWrapper)
             )
         dirWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
@@ -239,11 +243,11 @@ class MainWindow(object):
             cmds.control(element, e=True, bgc=(1,0.4,0.4))
     def extractAnimationData(s, anims):
         return sorted([a.data for a in anims], key=lambda x: x["range"][0])
+    def validateAnimName(name): # Validate anim name
+        if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
+            return True
+        return False
     def addAnimation(s, listElement):
-        def validateAnimName(name): # Validate anim name
-            if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
-                return True
-            return False
         def dataChanged():
             s.data["anim"] = s.extractAnimationData(s.animationData)
             s.save()
@@ -260,7 +264,7 @@ class MainWindow(object):
         s.animationData.append(anim)
         s.data["anim"] = s.extractAnimationData(s.animationData)
         s.save()
-        AnimationGUI(anim, validateAnimName, dataChanged)
+        AnimationGUI(anim, s.validateAnimName, dataChanged)
         s.displayAnimations(listElement, s.animationData)
     def removeAnimation(s, listElement, anim):
         if cmds.layout(listElement, ex=True):
@@ -270,19 +274,25 @@ class MainWindow(object):
             s.data["anim"] = s.extractAnimationData(s.animationData)
             s.save()
         print "Removing Animation:", anim.data["name"]
+    def editAnimation(s, listElement, anim):
+        def dataChanged():
+            s.data["anim"] = s.extractAnimationData(s.animationData)
+            s.save()
+            s.displayAnimations(listElement, s.animationData)
+        AnimationGUI(anim, s.validateAnimName, dataChanged)
     def displayAnimations(s, listElement, items):
         if items:
             s.clearElement(listElement)
             def addAnim(item):
                 row = cmds.rowLayout(
-                    nc=3,
+                    nc=5,
                     adj=2,
                     p=listElement)
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
-                    i="cube.png",
-                    h=20,
-                    w=20,
+                    i="animCurveTA.svg",
+                    h=25,
+                    w=25
                 )
                 cmds.text(
                     l="%s - %s : %s" % (
@@ -294,7 +304,26 @@ class MainWindow(object):
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
+                    i="render.png",
+                    ann="Export Animation",
+                    h=25,
+                    w=25,
+                    c=lambda: s.performExport(item)
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
+                    i="editBookmark.png",
+                    ann="Edit Animation",
+                    h=25,
+                    w=25,
+                    c=lambda: s.editAnimation(listElement, item)
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
                     i="removeRenderable.png",
+                    ann="Remove this animation.",
+                    h=25,
+                    w=25,
                     c=lambda: s.removeAnimation(row, item)
                 )
             for item in items:
@@ -350,6 +379,7 @@ class MainWindow(object):
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="removeRenderable.png",
+                    ann="Remove this object from the export selection.",
                     c=lambda: s.removeExportSelection(row, item)
                 )
             for item in items:
@@ -398,12 +428,13 @@ class MainWindow(object):
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="removeRenderable.png",
+                    ann="Remove this folder from the export list.",
                     c=lambda: s.removeExportFolder(row, item)
                 )
             for item in items:
                 addRow(item)
-    def performExport(s, *args):
-        print s.data
+    def performExport(s, anim):
+        print anim.data["name"]
         print "exporting anims"
 
 MainWindow()
