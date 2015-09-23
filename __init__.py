@@ -10,6 +10,7 @@
 import maya.cmds as cmds
 from re import sub
 from json import loads, dumps
+from datetime import datetime
 from unicodedata import normalize
 from os.path import isdir, join, dirname, basename, realpath, relpath
 
@@ -498,9 +499,9 @@ class MainWindow(object):
                     cmds.animLayer(layer, e=True, m=True)
             # Create filename
             validate = r"[^\w_-]"
-            filename = "%s@%s.fbx" % (
-                sub(validate, "_", normalize("NFKD", pref)),
-                sub(validate, "_", normalize("NFKD", data["name"]))
+            filename = "%s@%s" % (
+                sub(validate, "_", pref), # normalize("NFKD", pref)),
+                sub(validate, "_", data["name"]) # normalize("NFKD", data["name"]))
                 )
             files = [realpath(join(d, filename)).replace("\\", "/") for d in dirs]
             # Prepare export command (yikes)
@@ -530,7 +531,7 @@ FBXExportTangents -v false;
     "end"   : data["range"][1]
     }
             for f in files:
-                command += "FBXExport -f \"%s\" -s;\n" % f
+                command += "FBXExport -f \"%s.fbx\" -s;\n" % f
             # Make our selection
             cmds.select(objs, r=True)
             # Run our mel command behemoth
@@ -539,6 +540,14 @@ FBXExportTangents -v false;
                 if line:
                     print i, "\t", line
             mel.eval(command)
+            # # Save out a convenience json file too
+            # for f in files:
+            #     with open(f + ".json", "w") as w:
+            #         w.write(dumps({
+            #             "start"     : data["range"][0],
+            #             "end"       : data["range"][1],
+            #             "modified"  : str(datetime.now())
+            #         }))
 
 class cleanModify(object):
     """
