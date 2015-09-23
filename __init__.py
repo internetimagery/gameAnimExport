@@ -35,6 +35,28 @@ def loadInfo(dataName):
 def saveInfo(dataName, data):
     cmds.fileInfo(dataName, dumps(data))
 
+def getAllLayers():
+    rootLayer = cmds.animLayer(q=True, r=True)
+    if rootLayer:
+        additional = {}
+        def search(layer):
+            children = cmds.animLayer(layer, q=True, c=True)
+            if children:
+                for child in children:
+                    additional[child] = {}
+                    search(child)
+        search(rootLayer)
+        if additional:
+            for layer in additional:
+                mute = cmds.animLayer(layer, q=True, m=True)
+                solo = cmds.animLayer(layer, q=True, s=True)
+                additional[layer] = {
+                    "mute"  : mute,
+                    "solo"  : solo
+                }
+            return additional
+    return {}
+
 class Animation(object):
     """
     An animation entry
@@ -51,26 +73,17 @@ class Animation(object):
             int(cmds.playbackOptions(q=True, max=True))
         ]
     def animLayers(s):
-        rootLayer = cmds.animLayer(q=True, r=True)
-        if rootLayer:
-            additional = {}
-            def search(layer):
-                children = cmds.animLayer(layer, q=True, c=True)
-                if children:
-                    for child in children:
-                        additional[child] = {}
-                        search(child)
-            search(rootLayer)
-            if additional:
-                for layer in additional:
-                    mute = cmds.animLayer(layer, q=True, m=True)
-                    solo = cmds.animLayer(layer, q=True, s=True)
-                    additional[layer] = {
-                        "mute"  : mute,
-                        "solo"  : solo
-                    }
-                return additional
-        return {}
+        result = {
+            "solo"  : [],
+            "mute"  : []
+        }
+        layers = getAllLayers()
+        for layer in layers:
+            if layers[layer]["solo"]:
+                result["solo"].append(layer)
+            if layers[layer]["mute"]:
+                result["mute"].append(layer)
+        return result
 
 class AnimationGUI(object):
     def __init__(s, anim, validation, changeCallback):
@@ -80,6 +93,7 @@ class AnimationGUI(object):
         s.anim = anim
         s.validation = validation # Name validation
         s.change = changeCallback
+        s.layers = getAllLayers() # Grab up to date layer info
         winName = "Animation_Entry"
         if cmds.window(winName, ex=True):
             cmds.deleteUI(winName)
@@ -101,19 +115,19 @@ class AnimationGUI(object):
         title("Animation Layers")
         cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
         def addLayer(layer):
-            enable = True if layer in s.anim.data["layers"] else False
+            enable = False if layer == "BaseAnimation" else True
             cmds.rowLayout(nc=3, adj=3)
             cmds.iconTextCheckBox(
                 i="Solo_OFF.png",
                 si="Solo_ON.png",
-                v=s.anim.data["layers"][layer]["solo"] if enable else True,
+                v=True if enable and layer in s.anim.data["layers"]["solo"] else False,
                 en=enable,
                 cc=lambda x: s.updateLayer(layer, "solo", x)
             )
             cmds.iconTextCheckBox(
                 i="Mute_OFF.png",
                 si="Mute_ON.png",
-                v=s.anim.data["layers"][layer]["mute"] if enable else True,
+                v=True if enable and layer in s.anim.data["layers"]["mute"] else False,
                 en=enable,
                 cc=lambda x: s.updateLayer(layer, "mute", x)
             )
@@ -123,7 +137,7 @@ class AnimationGUI(object):
                 en=enable,
             )
             cmds.setParent("..")
-        for layer in (s.anim.data["layers"].keys() + ["BaseAnimation"]):
+        for layer in (s.layers.keys() + ["BaseAnimation"]):
             addLayer(layer)
         cmds.showWindow(window)
     def valid(s, element, ok):
@@ -146,7 +160,10 @@ class AnimationGUI(object):
             return True
         return False
     def updateLayer(s, layer, attr, value):
-        s.anim.data["layers"][layer][attr] = value
+        if value:
+            s.anim.data["layers"][attr].append(layer)
+        else:
+            s.anim.data["layers"][attr].remove(layer)
         s.change()
 
 class MainWindow(object):
@@ -434,7 +451,35 @@ class MainWindow(object):
             for item in items:
                 addRow(item)
     def performExport(s, anim):
-        print anim.data["name"]
+        # Validate animation data before export
+        if not s.data["pref"]:
+            return cmds.confirmDialog(t="Oh no..", m="Please add a prefix.")
+        if not s.data["objs"]:
+            return cmds.confirmDialog(t="Oh no..", m="Please add some objects to export.")
+        if not s.data["dirs"]:
+            return cmds.confirmDialog(t="Oh no..", m="Please add at least one folder to export into.")
+        # Get our animation data
+        data = s.extractAnimationData([anim])[0]
+        with cleanModify():
+            # Prep our layers
+            if data["layers"]:
+                for layer in data["layers"]:
+                    options = data["layers"][layer]
+                    print layer, options
+
         print "exporting anims"
+
+class cleanModify(object):
+    """
+    Cleanly modify scene without permanent changes
+    """
+    def __enter__(s):
+        s.selection = cmds.ls(sl=True)
+        cmds.undoInfo(ock=True)
+
+    def __exit__(s, *args):
+        cmds.select(s.selection, r=True)
+        cmds.undoInfo(cck=True)
+        cmds.undo()
 
 MainWindow()
