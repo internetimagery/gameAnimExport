@@ -10,7 +10,7 @@
 import maya.cmds as cmds
 from json import loads, dumps
 
-class Store(object):
+class Data(object):
     """
     Store metadata
     """
@@ -64,10 +64,11 @@ class Animation(object):
         return {}
 
 class AnimationGUI(object):
-    def __init__(s, anim):
+    def __init__(s, anim, validation=[]):
         """
         Modify animation window
         """
+        s.validation = validation
         winName = "Animation_Entry"
         if cmds.window(winName, ex=True):
             cmds.deleteUI(winName)
@@ -123,6 +124,10 @@ class AnimationGUI(object):
     def updateName(s, text):
         text = text.strip()
         if text:
+            if s.validation: # Validate name
+                for validate in s.validation:
+                    if not validate(text):
+                        return False
             anim.name = text
             return True
         return False
@@ -134,6 +139,13 @@ class AnimationGUI(object):
     def updateLayer(s, layer, attr, value):
         anim.data["layers"][layer][attr] = value
 
+class MainWindow(object):
+    """
+    Display animations
+    """
+    def __init__(s):
+        pass
 
+        
 anim = Animation({"name": "Test animation"})
 AnimationGUI(anim)
