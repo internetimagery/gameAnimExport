@@ -462,10 +462,20 @@ class MainWindow(object):
         data = s.extractAnimationData([anim])[0]
         with cleanModify():
             # Prep our layers
-            if data["layers"]:
-                for layer in data["layers"]:
-                    options = data["layers"][layer]
-                    print layer, options
+            layers = getAllLayers()
+            for layer in layers:
+                options = layers[layer]
+                if options["solo"]:
+                    cmds.animLayer(layer, e=True, s=False)
+                if layers[layer]["mute"]:
+                    cmds.animLayer(layer, e=True, m=False)
+            # modify our layers
+            if data["layers"]["solo"]:
+                for layer in data["layers"]["solo"]:
+                    cmds.animLayer(layer, e=True, s=True)
+            if data["layers"]["mute"]:
+                for layer in data["layers"]["mute"]:
+                    cmds.animLayer(layer, e=True, m=True)
 
         print "exporting anims"
 
@@ -475,11 +485,11 @@ class cleanModify(object):
     """
     def __enter__(s):
         s.selection = cmds.ls(sl=True)
-        cmds.undoInfo(ock=True)
+        # cmds.undoInfo(ock=True)
 
     def __exit__(s, *args):
         cmds.select(s.selection, r=True)
-        cmds.undoInfo(cck=True)
-        cmds.undo()
+        # cmds.undoInfo(cck=True)
+        # cmds.undo()
 
 MainWindow()
