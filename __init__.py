@@ -26,19 +26,20 @@ class Store(object):
         s.data[k] = v
         cmds.fileInfo(k, dumps(s.data))
 
-class AnimationCreate(object):
+class Animation(object):
     """
-    Window to create or edit an animation entry
+    An animation entry
     """
     def __init__(s, override={}):
-        s.data = {
-            "range" : s.frameRange(),
+        s.data = dict({
+            "name"  : "",
+            "range" : sorted(s.frameRange()),
             "layers": s.animLayers()
-        }
+        }, **override)
     def frameRange(s):
         return [
-            cmds.playbackOptions(q=True, min=True),
-            cmds.playbackOptions(q=True, max=True)
+            int(cmds.playbackOptions(q=True, min=True)),
+            int(cmds.playbackOptions(q=True, max=True))
         ]
     def animLayers(s):
         rootLayer = cmds.animLayer(q=True, r=True)
@@ -62,4 +63,47 @@ class AnimationCreate(object):
                 return additional
         return {}
 
-AnimationCreate()
+class AnimationGUI(object):
+    def __init__(s, anim):
+        """
+        Modify animation window
+        """
+        winName = "Animation_Entry"
+        if cmds.window(winName, ex=True):
+            cmds.deleteUI(winName)
+        window = cmds.window(winName, t="Animation", rtf=True)
+        cmds.columnLayout(adj=True)
+        cmds.text(l="Create / Edit an Animation.")
+        cmds.separator()
+        name = cmds.textFieldGrp(
+            l="Name: ",
+            adj=2,
+            tcc=lambda x: s.valid(name, s.updateName(x)))
+        frame = cmds.intFieldGrp(
+            l="Frame Range: ",
+            nf=2,
+            v1=anim.data["range"][0],
+            v2=anim.data["range"][1],
+            cc= lambda x, y: s.valid(frame, s.updateRange(x,y))
+        )
+        cmds.scrollLayout(cr=True)
+        cmds.showWindow(window)
+    def valid(s, element, ok):
+        if ok:
+            cmds.control(element, e=True, bgc=(0.3,1,0.3))
+        else:
+            cmds.control(element, e=True, bgc=(1,0.4,0.4))
+    def updateName(s, text):
+        text = text.strip()
+        if text:
+            anim.name = text
+            return True
+        return False
+    def updateRange(s, mini, maxi):
+        if mini < maxi:
+            anim.data["range"] = [mini, maxi]
+            return True
+        return False
+
+anim = Animation({"name": "Test animation"})
+AnimationGUI(anim)
