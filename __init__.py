@@ -456,10 +456,16 @@ class MainWindow(object):
             return cmds.confirmDialog(t="Oh no..", m="Please add a prefix.")
         if not s.data["objs"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add some objects to export.")
+        objs = [o for o in s.data["objs"] if cmds.objExists(o)]
+        if not objs:
+            return cmds.confirmDialog(t="Oh no..", m="None of the selected objects could be found.")
         if not s.data["dirs"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add at least one folder to export into.")
+        dirs = [d for d in s.data["dirs"] if isdir(d)]
+        if not dirs:
+            return cmds.confirmDialog(t="Oh no..", m="None of the chosen folders could be found.")
         # Get our animation data
-        data = s.extractAnimationData([anim])[0]
+        data = anim.data
         with cleanModify():
             print "Exporting %s." % data["name"]
             # Prep our layers
