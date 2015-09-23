@@ -174,6 +174,17 @@ class MainWindow(object):
     Display animations
     """
     def __init__(s):
+        # Build window
+        name = "GameAnimExportWindow"
+        if cmds.window(name, ex=True):
+            cmds.deleteUI(name)
+        s.window = cmds.window(name, t="Animations", rtf=True)
+        s.wrapper = cmds.columnLayout(adj=True)
+        s.buildGUI()
+        cmds.showWindow(s.window)
+        cmds.scriptJob(e=["PostSceneRead", s.buildGUI], p=s.window)
+        cmds.scriptJob(e=["NewSceneOpened", s.buildGUI], p=s.window)
+    def buildGUI(s):
         s.dataName = "GameAnimExportData"
         s.data = loadInfo(s.dataName)
         # Initialize Data
@@ -182,12 +193,8 @@ class MainWindow(object):
         s.data["dirs"] = s.data.get("dirs", [])
         s.animationData = []
         s.data["anim"] = s.data.get("anim", {})
-        # Build window
-        name = "GameAnimExportWindow"
-        if cmds.window(name, ex=True):
-            cmds.deleteUI(name)
-        s.window = cmds.window(name, t="Animations", rtf=True)
-        cmds.columnLayout(adj=True)
+        s.clearElement(s.wrapper)
+        cmds.setParent(s.wrapper)
         title("Animation Export Options:")
         prefix = cmds.textFieldGrp(
             l="Animation Prefix: ",
@@ -224,7 +231,7 @@ class MainWindow(object):
         )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
-            i="menuIconFile.png",
+            i="menuIconFile.png", # fileOpen.png
             l="Add folder for exporting.",
             ann="Pick some folders to export animations into. Folders that don't exist will be skipped.",
             c=lambda: s.addExportFolder(dirWrapper)
@@ -242,7 +249,6 @@ class MainWindow(object):
         s.displayAnimations(animWrapper, s.animationData    )
         s.displayExportSelection(selWrapper, s.data["objs"])
         s.displayExportFolders(dirWrapper, s.data["dirs"])
-        cmds.showWindow(s.window)
     def save(s):
         saveInfo(s.dataName, s.data)
     def clearElement(s, element):
@@ -332,7 +338,7 @@ class MainWindow(object):
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
-                    i="editBookmark.png",
+                    i="setEdEditMode.png",
                     ann="Edit Animation",
                     h=25,
                     w=25,
@@ -439,7 +445,7 @@ class MainWindow(object):
                     p=listElement)
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
-                    i="outArrow.png",
+                    i="navButtonBrowse.png",
                 )
                 cmds.text(
                     l=textLimit(item),
@@ -471,6 +477,8 @@ class MainWindow(object):
             return cmds.confirmDialog(t="Oh no..", m="None of the chosen folders could be found.")
         # Get our animation data
         data = anim.data
+        if not data["name"] or not data["range"] or not data["layers"]:
+            return cmds.configDialog(t="Oh no..", m="There was an issue with you anim data.")
         with cleanModify():
             print "Exporting %s." % data["name"]
             # Prep our layers
@@ -488,7 +496,6 @@ class MainWindow(object):
             if data["layers"]["mute"]:
                 for layer in data["layers"]["mute"]:
                     cmds.animLayer(layer, e=True, m=True)
-
             # Create filename
             validate = r"[^\w_-]"
             filename = "%s@%s.fbx" % (
@@ -496,7 +503,44 @@ class MainWindow(object):
                 sub(validate, "_", normalize("NFKD", data["name"]))
                 )
             files = [realpath(join(d, filename)) for d in dirs]
-            print files
+            # Prepare export command (yikes)
+            command =  """
+FBXResetExport; FBXExportInAscii -v true;
+FBXExportCameras -v false; FBXExportLights -v false;
+FBXExportUpAxis %(axis)s; FBXExportUseSceneName -v false;
+FBXExportGenerateLog -v false; FBXExportConstraints -v false;
+FBXExportAxisConversionMethod convertAnimation;
+FBXExportBakeComplexAnimation -v true;
+FBXExportBakeComplexStart -v %(start)s;
+FBXExportBakeComplexEnd -v %(end)s;
+FBXExportBakeComplexStep -v 1;
+FBXExportBakeResampleAnimation -v true;
+FBXExportApplyConstantKeyReducer -v true;
+ /* FBXExportSkeleton -v true; */
+FBXExportSkins -v true;
+FBXExportShapes -v true;
+FBXExportInputConnections -v false;
+FBXExportEmbeddedTextures -v false;
+FBXExportSmoothMesh -v false;
+FBXExportSmoothingGroups -v false;
+FBXExportTangents -v false;
+""" % {
+    "axis"  : cmds.upAxis(q=True, ax=True),
+    "start" : data["range"][0],
+    "end"   : data["range"][1]
+    }
+            for f in files:
+                command += "FBXExport -f \"%s\" -s;\n" % f
+            # Make our selection
+            cmds.select(objs, r=True)
+            # Run our mel command behemoth
+            print "Running Mel:"
+            for i, line in enumerate(command.strip().split("\n")):
+                print i+1, "\t", line
+            mel.eval(command)
+
+
+
 
 
 class cleanModify(object):
