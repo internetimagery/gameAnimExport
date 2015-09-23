@@ -476,6 +476,7 @@ class MainWindow(object):
             if data["layers"]["mute"]:
                 for layer in data["layers"]["mute"]:
                     cmds.animLayer(layer, e=True, m=True)
+            framerange = data["range"]
 
         print "exporting anims"
 
@@ -485,11 +486,11 @@ class cleanModify(object):
     """
     def __enter__(s):
         s.selection = cmds.ls(sl=True)
-        # cmds.undoInfo(ock=True)
+        cmds.undoInfo(ock=True)
 
     def __exit__(s, *args):
         cmds.select(s.selection, r=True)
-        # cmds.undoInfo(cck=True)
-        # cmds.undo()
+        cmds.undoInfo(cck=True)
+        cmds.undo()
 
 MainWindow()
