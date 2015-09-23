@@ -14,6 +14,9 @@ def title(text):
     cmds.text(l=text, al="left", h=30)
     cmds.separator()
 
+def textLimit(text, limit=100):
+    return text if len(text) < limit else "%s ... %s" % (text[:limit-15], text[-10:])
+
 def absolutePath(path):
     root = cmds.workspace(q=True, rd=True)
     return join(root, path)
@@ -229,7 +232,7 @@ class MainWindow(object):
                 exists = cmds.objExists(item)
                 row = cmds.rowLayout(
                     nc=3,
-                    adj=3,
+                    adj=2,
                     bgc=(0.2,0.2,0.2) if exists else (1,0.4,0.4),
                     p=listElement)
                 if exists and cmds.objectType(item) == "joint":
@@ -238,27 +241,29 @@ class MainWindow(object):
                     icon = "cube.png"
                 else:
                     icon = "menuIconConstraints.png"
-                cmds.iconTextButton(
-                    st="iconOnly",
-                    i="removeRenderable.png",
-                    c=lambda: s.removeExportSelection(row, item)
-                )
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
                     i=icon,
                     h=20,
                     w=20,
-                    l=item
                 )
                 cmds.text(
-                    l=item,
+                    l=textLimit(item),
                     al="left",
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
+                    i="removeRenderable.png",
+                    c=lambda: s.removeExportSelection(row, item)
                 )
             for item in items:
                 addSel(item)
-
     def addAnimation(s, listElement):
         print "add new animation"
+    def removeAnimation(s, listElement, anim):
+        pass
+    def displayAnimations(s, listElement, items):
+        pass
     def addExportFolder(s, listElement):
         folder = cmds.fileDialog2(ds=2, cap="Select a Folder.", fm=3, okc="Select Folder")
         if folder:
@@ -284,19 +289,23 @@ class MainWindow(object):
         if items:
             def addRow(item):
                 row = cmds.rowLayout(
-                    nc=2,
+                    nc=3,
                     adj=2,
                     h=30,
                     bgc=(0.2,0.2,0.2) if isdir(absolutePath(item)) else (1,0.4,0.4),
                     p=listElement)
+                cmds.iconTextStaticLabel(
+                    st="iconOnly",
+                    i="outArrow.png",
+                )
+                cmds.text(
+                    l=textLimit(item),
+                    al="left",
+                )
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="removeRenderable.png",
                     c=lambda: s.removeExportFolder(row, item)
-                )
-                cmds.text(
-                    l=item,
-                    al="left",
                 )
             for item in items:
                 addRow(item)
