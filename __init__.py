@@ -73,7 +73,7 @@ class AnimationGUI(object):
             cmds.deleteUI(winName)
         window = cmds.window(winName, t="Animation", rtf=True)
         cmds.columnLayout(adj=True)
-        cmds.text(l="Create / Edit an Animation.")
+        cmds.text(l="Create / Edit an Animation.", al="left", h=30)
         cmds.separator()
         name = cmds.textFieldGrp(
             l="Name: ",
@@ -86,7 +86,26 @@ class AnimationGUI(object):
             v2=anim.data["range"][1],
             cc= lambda x, y: s.valid(frame, s.updateRange(x,y))
         )
-        cmds.scrollLayout(cr=True)
+        cmds.text(l="Animation Layers", al="left", h=30)
+        cmds.separator()
+        cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
+        def addLayer(layer):
+            disable = False if layer in anim.data["layers"] else True
+            cmds.rowLayout(nc=3, adj=3)
+            cmds.iconTextCheckBox(
+                i="Solo_OFF.png",
+                si="Solo_ON.png"
+            )
+            cmds.iconTextCheckBox(
+                i="Mute_OFF.png",
+                si="Mute_ON.png"
+            )
+            cmds.text(
+                l=layer,
+                al="left")
+            cmds.setParent("..")
+        for layer in (anim.data["layers"].keys() + ["BaseAnimation"])
+            addLayer(layer)
         cmds.showWindow(window)
     def valid(s, element, ok):
         if ok:
@@ -104,6 +123,13 @@ class AnimationGUI(object):
             anim.data["range"] = [mini, maxi]
             return True
         return False
+    def updateLayer(s, layer, attr, value):
+        print layer, attr, value
+
+# Solo_ON.png
+# Solo_OFF.png
+# Mute_ON.png
+# Mute_OFF.png
 
 anim = Animation({"name": "Test animation"})
 AnimationGUI(anim)
