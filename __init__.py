@@ -6,8 +6,11 @@
 # store frame information per animaton
 # store rig information (only once?)
 
+
 import maya.cmds as cmds
+from re import sub
 from json import loads, dumps
+from unicodedata import normalize
 from os.path import isdir, join, dirname, basename, realpath, relpath
 
 def title(text):
@@ -260,7 +263,7 @@ class MainWindow(object):
             cmds.control(element, e=True, bgc=(1,0.4,0.4))
     def extractAnimationData(s, anims):
         return sorted([a.data for a in anims], key=lambda x: x["range"][0])
-    def validateAnimName(name): # Validate anim name
+    def validateAnimName(s, name): # Validate anim name
         if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
             return True
         return False
@@ -451,9 +454,10 @@ class MainWindow(object):
             for item in items:
                 addRow(item)
     def performExport(s, anim):
-        # Validate animation data before export
+        # Validate scene data before export
         if not s.data["pref"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add a prefix.")
+        pref = s.data["pref"]
         if not s.data["objs"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add some objects to export.")
         objs = [o for o in s.data["objs"] if cmds.objExists(o)]
@@ -461,7 +465,8 @@ class MainWindow(object):
             return cmds.confirmDialog(t="Oh no..", m="None of the selected objects could be found.")
         if not s.data["dirs"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add at least one folder to export into.")
-        dirs = [d for d in s.data["dirs"] if isdir(d)]
+        dirs = [absolutePath(d) for d in s.data["dirs"]]
+        dirs = [d for d in dirs if isdir(d)]
         if not dirs:
             return cmds.confirmDialog(t="Oh no..", m="None of the chosen folders could be found.")
         # Get our animation data
@@ -476,13 +481,22 @@ class MainWindow(object):
                     cmds.animLayer(layer, e=True, s=False)
                 if layers[layer]["mute"]:
                     cmds.animLayer(layer, e=True, m=False)
-            # modify our layers
+            # Modify our layers
             if data["layers"]["solo"]:
                 for layer in data["layers"]["solo"]:
                     cmds.animLayer(layer, e=True, s=True)
             if data["layers"]["mute"]:
                 for layer in data["layers"]["mute"]:
                     cmds.animLayer(layer, e=True, m=True)
+
+            # Create filename
+            validate = r"[^\w_-]"
+            filename = "%s@%s.fbx" % (
+                sub(validate, "_", normalize("NFKD", pref)),
+                sub(validate, "_", normalize("NFKD", data["name"]))
+                )
+            files = [realpath(join(d, filename)) for d in dirs]
+            print files
 
 
 class cleanModify(object):
