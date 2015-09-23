@@ -77,6 +77,7 @@ class AnimationGUI(object):
         """
         Modify animation window
         """
+        s.anim = anim
         s.validation = validation # Name validation
         s.change = changeCallback
         winName = "Animation_Entry"
@@ -87,32 +88,32 @@ class AnimationGUI(object):
         title("Create / Edit an Animation:")
         name = cmds.textFieldGrp(
             l="Name: ",
-            tx=anim.data["name"],
+            tx=s.anim.data["name"],
             adj=2,
             tcc=lambda x: s.valid(name, s.updateName(x)))
         frame = cmds.intFieldGrp(
             l="Frame Range: ",
             nf=2,
-            v1=anim.data["range"][0],
-            v2=anim.data["range"][1],
+            v1=s.anim.data["range"][0],
+            v2=s.anim.data["range"][1],
             cc= lambda x, y: s.valid(frame, s.updateRange(x,y))
         )
         title("Animation Layers")
         cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
         def addLayer(layer):
-            enable = True if layer in anim.data["layers"] else False
+            enable = True if layer in s.anim.data["layers"] else False
             cmds.rowLayout(nc=3, adj=3)
             cmds.iconTextCheckBox(
                 i="Solo_OFF.png",
                 si="Solo_ON.png",
-                v=anim.data["layers"][layer]["solo"] if enable else True,
+                v=s.anim.data["layers"][layer]["solo"] if enable else True,
                 en=enable,
                 cc=lambda x: s.updateLayer(layer, "solo", x)
             )
             cmds.iconTextCheckBox(
                 i="Mute_OFF.png",
                 si="Mute_ON.png",
-                v=anim.data["layers"][layer]["mute"] if enable else True,
+                v=s.anim.data["layers"][layer]["mute"] if enable else True,
                 en=enable,
                 cc=lambda x: s.updateLayer(layer, "mute", x)
             )
@@ -122,7 +123,7 @@ class AnimationGUI(object):
                 en=enable,
             )
             cmds.setParent("..")
-        for layer in (anim.data["layers"].keys() + ["BaseAnimation"]):
+        for layer in (s.anim.data["layers"].keys() + ["BaseAnimation"]):
             addLayer(layer)
         cmds.showWindow(window)
     def valid(s, element, ok):
@@ -134,18 +135,18 @@ class AnimationGUI(object):
         text = text.strip()
         if text:
             if s.validation(text): # Validate name
-                anim.data["name"] = text.title()
+                s.anim.data["name"] = text.title()
                 s.change()
                 return True
         return False
     def updateRange(s, mini, maxi):
         if mini < maxi:
-            anim.data["range"] = [mini, maxi]
+            s.anim.data["range"] = [mini, maxi]
             s.change()
             return True
         return False
     def updateLayer(s, layer, attr, value):
-        anim.data["layers"][layer][attr] = value
+        s.anim.data["layers"][layer][attr] = value
         s.change()
 
 class MainWindow(object):
@@ -223,6 +224,7 @@ class MainWindow(object):
                 return True
             return False
         def dataChanged():
+            print anim.data
             s.displayAnimations(listElement, s.animationData)
         basename = "Anim_"
         index = 1
