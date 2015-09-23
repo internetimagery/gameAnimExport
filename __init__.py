@@ -177,6 +177,10 @@ class MainWindow(object):
             )
         animWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
         cmds.setParent("..")
+        cmds.button(
+            l="Export All",
+            c=s.performExport
+        )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="selectByObject.png",
@@ -193,18 +197,15 @@ class MainWindow(object):
             )
         dirWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
         cmds.setParent("..")
-        exportBtn = cmds.button(
-            l="EXPORT ANIMS",
-            h=50,
-            c=s.performExport
-        )
         # Display Data data
         s.displayExportSelection(selWrapper, s.data["objs"])
         s.displayExportFolders(dirWrapper, s.data["dirs"])
         cmds.showWindow(s.window)
+    def save(s):
+        saveInfo(s.dataName, s.data)
     def setExportSelection(s, listElement, items):
         s.data["objs"] = items
-        s.dirty()
+        s.save()
         s.displayExportSelection(listElement, items)
     def displayExportSelection(s, listElement, items):
         existing = cmds.layout(listElement, q=True, ca=True)
@@ -239,17 +240,20 @@ class MainWindow(object):
             else:
                 print "Adding Export Folder:", folder
                 s.data["dirs"].append(folder)
+                s.save()
                 s.displayExportFolders(listElement, s.data["dirs"])
+    def removeExportFolder(s, listElement, path):
+        if cmds.layout(listElement, ex=True):
+            cmds.deleteUI(listElement)
+        if path in s.data["dirs"]:
+            s.data["dirs"].remove(path)
+            s.save()
+        print "Removing Export Folder:", path
     def displayExportFolders(s, listElement, items):
         existing = cmds.layout(listElement, q=True, ca=True)
         if existing:
             cmds.deleteUI(existing)
         if items:
-            def deletePath(element, path):
-                if cmds.layout(element, ex=True):
-                    cmds.deleteUI(element)
-                    s.data["dirs"].remove(path)
-                print "Removing Export Folder:", path
             def addRow(item):
                 row = cmds.rowLayout(
                     nc=2,
@@ -260,7 +264,7 @@ class MainWindow(object):
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="removeRenderable.png",
-                    c=lambda: deletePath(row, item)
+                    c=lambda: s.removeExportFolder(row, item)
                 )
                 cmds.text(
                     l=item,
@@ -269,6 +273,7 @@ class MainWindow(object):
             for item in items:
                 addRow(item)
     def performExport(s, *args):
+        print s.data
         print "exporting anims"
 
 MainWindow()
