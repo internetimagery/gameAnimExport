@@ -212,6 +212,10 @@ class MainWindow(object):
             c=lambda x: s.clearExportFolders(dirWrapper)
         )
         # Display Data data
+        if s.data["anim"]:
+            for anim in s.data["anim"]:
+                s.animationData.append(Animation(anim))
+        s.displayAnimations(animWrapper, s.animationData    )
         s.displayExportSelection(selWrapper, s.data["objs"])
         s.displayExportFolders(dirWrapper, s.data["dirs"])
         cmds.showWindow(s.window)
@@ -229,15 +233,20 @@ class MainWindow(object):
         text = text.strip().title()
         if text and 2 < len(text) < 30 and "@" not in text:
             cmds.layout(element, e=True, bgc=(0.3,1,0.3))
+            s.data["pref"] = text
+            s.save()
         else:
             cmds.control(element, e=True, bgc=(1,0.4,0.4))
+    def extractAnimationData(s, anims):
+        return sorted([a.data for a in anims], key=lambda x: x["range"][0])
     def addAnimation(s, listElement):
         def validateAnimName(name): # Validate anim name
             if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
                 return True
             return False
         def dataChanged():
-            print anim.data
+            s.data["anim"] = s.extractAnimationData(s.animationData)
+            s.save()
             s.displayAnimations(listElement, s.animationData)
         basename = "Anim_"
         index = 1
@@ -249,6 +258,8 @@ class MainWindow(object):
             "name"  : animName
             })
         s.animationData.append(anim)
+        s.data["anim"] = s.extractAnimationData(s.animationData)
+        s.save()
         AnimationGUI(anim, validateAnimName, dataChanged)
         s.displayAnimations(listElement, s.animationData)
     def removeAnimation(s, listElement, anim):
@@ -256,6 +267,8 @@ class MainWindow(object):
             cmds.deleteUI(listElement)
         if anim in s.animationData:
             s.animationData.remove(anim)
+            s.data["anim"] = s.extractAnimationData(s.animationData)
+            s.save()
         print "Removing Animation:", anim.data["name"]
     def displayAnimations(s, listElement, items):
         if items:
