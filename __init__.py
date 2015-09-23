@@ -157,6 +157,7 @@ class MainWindow(object):
         s.dataName = "GameAnimExportData"
         s.data = loadInfo(s.dataName)
         # Initialize Data
+        s.data["pref"] = s.data.get("pref", "Default")
         s.data["objs"] = s.data.get("objs", [])
         s.data["dirs"] = s.data.get("dirs", [])
         s.animationData = []
@@ -168,6 +169,12 @@ class MainWindow(object):
         s.window = cmds.window(name, t="Animations", rtf=True)
         cmds.columnLayout(adj=True)
         title("Animation Export Options:")
+        prefix = cmds.textFieldGrp(
+            l="Animation Prefix: ",
+            tx=s.data["pref"],
+            adj=1,
+            tcc=lambda x:s.changePrefix(prefix, x)
+        )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="animateSweep.png",
@@ -218,6 +225,12 @@ class MainWindow(object):
                     cmds.deleteUI(existing)
                 except RuntimeError:
                     pass
+    def changePrefix(s, element, text):
+        text = text.strip().title()
+        if text and 2 < len(text) < 30 and "@" not in text:
+            cmds.layout(element, e=True, bgc=(0.3,1,0.3))
+        else:
+            cmds.control(element, e=True, bgc=(1,0.4,0.4))
     def addAnimation(s, listElement):
         def validateAnimName(name): # Validate anim name
             if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
@@ -259,7 +272,11 @@ class MainWindow(object):
                     w=20,
                 )
                 cmds.text(
-                    l=textLimit(item.data["name"]),
+                    l="%s - %s : %s" % (
+                        item.data["range"][0],
+                        item.data["range"][1],
+                        textLimit(item.data["name"])
+                        ),
                     al="left",
                 )
                 cmds.iconTextButton(
