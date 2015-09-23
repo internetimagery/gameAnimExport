@@ -73,20 +73,21 @@ class Animation(object):
         return {}
 
 class AnimationGUI(object):
-    def __init__(s, anim, validation=[], saveCallback=None):
+    def __init__(s, anim, validation, changeCallback):
         """
         Modify animation window
         """
-        s.validation = validation
-        s.save = saveCallback
+        s.validation = validation # Name validation
+        s.change = changeCallback
         winName = "Animation_Entry"
         if cmds.window(winName, ex=True):
             cmds.deleteUI(winName)
         window = cmds.window(winName, t="Animation", rtf=True)
         cmds.columnLayout(adj=True)
-        title("Create / Edit an Animation.")
+        title("Create / Edit an Animation:")
         name = cmds.textFieldGrp(
             l="Name: ",
+            tx=anim.data["name"],
             adj=2,
             tcc=lambda x: s.valid(name, s.updateName(x)))
         frame = cmds.intFieldGrp(
@@ -98,13 +99,6 @@ class AnimationGUI(object):
         )
         title("Animation Layers")
         cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
-        cmds.setParent("..")
-        cmds.iconTextButton(
-            st="iconAndTextHorizontal",
-            i="save.png",
-            l="Save Animation Details.",
-            c=lambda: s.save()
-            )
         def addLayer(layer):
             enable = True if layer in anim.data["layers"] else False
             cmds.rowLayout(nc=3, adj=3)
@@ -139,20 +133,20 @@ class AnimationGUI(object):
     def updateName(s, text):
         text = text.strip()
         if text:
-            if s.validation: # Validate name
-                for validate in s.validation:
-                    if not validate(text):
-                        return False
-            anim.name = text
-            return True
+            if s.validation(text): # Validate name
+                anim.data["name"] = text.title()
+                s.change()
+                return True
         return False
     def updateRange(s, mini, maxi):
         if mini < maxi:
             anim.data["range"] = [mini, maxi]
+            s.change()
             return True
         return False
     def updateLayer(s, layer, attr, value):
         anim.data["layers"][layer][attr] = value
+        s.change()
 
 class MainWindow(object):
     """
@@ -164,7 +158,8 @@ class MainWindow(object):
         # Initialize Data
         s.data["objs"] = s.data.get("objs", [])
         s.data["dirs"] = s.data.get("dirs", [])
-        s.data["anim"] = s.data.get("anim", [])
+        s.animationData = []
+        s.data["anim"] = s.data.get("anim", {})
         # Build window
         name = "GameAnimExportWindow"
         if cmds.window(name, ex=True):
@@ -222,6 +217,56 @@ class MainWindow(object):
                     cmds.deleteUI(existing)
                 except RuntimeError:
                     pass
+    def addAnimation(s, listElement):
+        def validateAnimName(name): # Validate anim name
+            if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
+                return True
+            return False
+        def dataChanged():
+            s.displayAnimations(listElement, s.animationData)
+        basename = "Anim_"
+        index = 1
+        animName = basename + str(index)
+        while animName in [a.data["name"] for a in s.animationData]:
+            index += 1
+            animName = basename + str(index)
+        anim = Animation({
+            "name"  : animName
+            })
+        s.animationData.append(anim)
+        AnimationGUI(anim, validateAnimName, dataChanged)
+        s.displayAnimations(listElement, s.animationData)
+    def removeAnimation(s, listElement, anim):
+        if cmds.layout(listElement, ex=True):
+            cmds.deleteUI(listElement)
+        if anim in s.animationData:
+            s.animationData.remove(anim)
+        print "Removing Animation:", anim.data["name"]
+    def displayAnimations(s, listElement, items):
+        if items:
+            s.clearElement(listElement)
+            def addAnim(item):
+                row = cmds.rowLayout(
+                    nc=3,
+                    adj=2,
+                    p=listElement)
+                cmds.iconTextStaticLabel(
+                    st="iconOnly",
+                    i="cube.png",
+                    h=20,
+                    w=20,
+                )
+                cmds.text(
+                    l=textLimit(item.data["name"]),
+                    al="left",
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
+                    i="removeRenderable.png",
+                    c=lambda: s.removeAnimation(row, item)
+                )
+            for item in items:
+                addAnim(item)
     def addExportSelection(s, listElement, items):
         if items:
             for item in items:
@@ -277,12 +322,6 @@ class MainWindow(object):
                 )
             for item in items:
                 addSel(item)
-    def addAnimation(s, listElement):
-        print "add new animation"
-    def removeAnimation(s, listElement, anim):
-        pass
-    def displayAnimations(s, listElement, items):
-        pass
     def addExportFolder(s, listElement):
         folder = cmds.fileDialog2(ds=2, cap="Select a Folder.", fm=3, okc="Select Folder")
         if folder:
