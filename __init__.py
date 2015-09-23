@@ -1,4 +1,3 @@
-# TODO
 
 # Save scene information json into fileInfo
 # toolbox for viewing information
@@ -10,21 +9,18 @@
 import maya.cmds as cmds
 from json import loads, dumps
 
-class Data(object):
-    """
-    Store metadata
-    """
-    def __init__(s):
-        s.dataName = "GameAnimExport"
-        try:
-            s.data = loads(cmds.fileInfo(s.dataName, q=True)[0].decode("unicode_escape"))
-        except ValueError, IndexError:
-            s.data = {}
-    def get(s, k, default=None):
-        return s.data.get(k, default)
-    def set(s, k, v):
-        s.data[k] = v
-        cmds.fileInfo(k, dumps(s.data))
+def title(text):
+    cmds.text(l=text, al="left", h=30)
+    cmds.separator()
+
+def loadInfo(dataName):
+    try:
+        return loads(cmds.fileInfo(dataName, q=True)[0].decode("unicode_escape"))
+    except (ValueError, IndexError):
+        return {}
+
+def saveInfo(dataName, data):
+    cmds.fileInfo(dataName, dumps(data))
 
 class Animation(object):
     """
@@ -64,18 +60,18 @@ class Animation(object):
         return {}
 
 class AnimationGUI(object):
-    def __init__(s, anim, validation=[]):
+    def __init__(s, anim, validation=[], dirty=None):
         """
         Modify animation window
         """
         s.validation = validation
+        s.dirty = dirty
         winName = "Animation_Entry"
         if cmds.window(winName, ex=True):
             cmds.deleteUI(winName)
         window = cmds.window(winName, t="Animation", rtf=True)
         cmds.columnLayout(adj=True)
-        cmds.text(l="Create / Edit an Animation.", al="left", h=30)
-        cmds.separator()
+        title("Create / Edit an Animation.")
         name = cmds.textFieldGrp(
             l="Name: ",
             adj=2,
@@ -87,8 +83,7 @@ class AnimationGUI(object):
             v2=anim.data["range"][1],
             cc= lambda x, y: s.valid(frame, s.updateRange(x,y))
         )
-        cmds.text(l="Animation Layers", al="left", h=30)
-        cmds.separator()
+        title("Animation Layers")
         cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
         def addLayer(layer):
             enable = True if layer in anim.data["layers"] else False
@@ -129,23 +124,101 @@ class AnimationGUI(object):
                     if not validate(text):
                         return False
             anim.name = text
+            if s.dirty: # Mark changes as having been made
+                s.dirty()
             return True
         return False
     def updateRange(s, mini, maxi):
         if mini < maxi:
             anim.data["range"] = [mini, maxi]
+            if s.dirty: # Mark changes as having been made
+                s.dirty()
             return True
         return False
     def updateLayer(s, layer, attr, value):
         anim.data["layers"][layer][attr] = value
+        if s.dirty: # Mark changes as having been made
+            s.dirty()
 
 class MainWindow(object):
     """
     Display animations
     """
     def __init__(s):
-        pass
+        s.dataName = "GameAnimExportData"
+        s.data = loadInfo(s.dataName)
+        # Initialize Data
+        s.data["objs"] = s.data.get("objs", [])
+        name = "GameAnimExportWindow"
+        if cmds.window(name, ex=True):
+            cmds.deleteUI(name)
+        s.window = cmds.window(name, t="Animations", rtf=True)
+        cmds.columnLayout(adj=True)
+        title("Export Options:")
+        cmds.iconTextButton(
+            st="iconAndTextHorizontal",
+            i="animateSweep.png",
+            l="Add a new Animation.",
+            c=lambda: s.addAnimation(animWrapper)
+            )
+        animWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
+        cmds.setParent("..")
+        cmds.iconTextButton(
+            st="iconAndTextHorizontal",
+            i="selectByObject.png",
+            l="Use selected objects for export.",
+            c=lambda: s.setExportSelection(selWrapper, cmds.ls(sl=True))
+            )
+        selWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
+        cmds.setParent("..")
+        s.saveBtn = cmds.button(
+            l="SAVE",
+            h=40,
+            c=s.saveData
+        )
+        # Initialize data
+        s.dirty(True)
+        s.displayExportSelection(selWrapper, s.data["objs"])
+        cmds.showWindow(s.window)
+    def setExportSelection(s, listElement, items):
+        s.data["objs"] = items
+        s.dirty()
+        s.displayExportSelection(listElement, items)
+    def displayExportSelection(s, listElement, items):
+        existing = cmds.layout(listElement, q=True, ca=True)
+        if existing:
+            cmds.deleteUI(existing)
+        if items:
+            for item in items:
+                cmds.rowLayout(
+                    nc=2,
+                    adj=2,
+                    bgc=(0.2,0.2,0.2) if cmds.objExists(item) else (1,0.4,0.4),
+                    p=listElement)
+                cmds.iconTextStaticLabel(
+                    st="iconOnly",
+                    i="joint.svg" if cmds.objectType(item) == "joint" else "cube.png",
+                    h=25,
+                    w=25,
+                    l=item
+                )
+                cmds.text(
+                    l=item,
+                    al="left",
+                )
+    def addAnimation(s, listElement):
+        print "add new animation"
 
-        
-anim = Animation({"name": "Test animation"})
-AnimationGUI(anim)
+    def dirty(s, clean=False):
+        titleName = cmds.window(s.window, q=True, t=True)
+        if clean:
+            cmds.button(s.saveBtn, e=True, bgc=(0.5,0.5,0.5), en=False)
+            cmds.window(s.window, e=True, t=titleName.replace("*", ""))
+        else:
+            cmds.button(s.saveBtn, e=True, bgc=(0.3,1,0.3), en=True)
+            if titleName[-1:] != "*":
+                cmds.window(s.window, e=True, t=titleName+"*")
+    def saveData(s, *args):
+        print "Saving"
+        s.dirty(True)
+MainWindow()
