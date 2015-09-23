@@ -8,11 +8,20 @@
 
 import maya.cmds as cmds
 from json import loads, dumps
-from os.path import join, dirname, basename, realpath
+from os.path import isdir, join, dirname, basename, realpath, relpath
 
 def title(text):
     cmds.text(l=text, al="left", h=30)
     cmds.separator()
+
+def absolutePath(path):
+    root = cmds.workspace(q=True, rd=True)
+    return join(root, path)
+
+def relativePath(path):
+    root = cmds.workspace(q=True, rd=True)
+    rPath = relpath(path, root)
+    return absolutePath(path) if rPath[:2] == ".." else rPath
 
 def loadInfo(dataName):
     try:
@@ -191,6 +200,7 @@ class MainWindow(object):
         )
         # Display Data data
         s.displayExportSelection(selWrapper, s.data["objs"])
+        s.displayExportFolders(dirWrapper, s.data["dirs"])
         cmds.showWindow(s.window)
     def setExportSelection(s, listElement, items):
         s.data["objs"] = items
@@ -223,30 +233,41 @@ class MainWindow(object):
     def addExportFolder(s, listElement):
         folder = cmds.fileDialog2(ds=2, cap="Select a Folder.", fm=3, okc="Select Folder")
         if folder:
-            s.data["dirs"].append(folder[0])
-            s.displayExportFolders(listElement, s.data["dirs"])
+            folder = relativePath(folder[0])
+            if folder in s.data["dirs"]:
+                cmds.confirmDialog(t="whoops", m="The folder you chose is already there.")
+            else:
+                print "Adding Export Folder:", folder
+                s.data["dirs"].append(folder)
+                s.displayExportFolders(listElement, s.data["dirs"])
     def displayExportFolders(s, listElement, items):
         existing = cmds.layout(listElement, q=True, ca=True)
         if existing:
             cmds.deleteUI(existing)
         if items:
-            for item in items:
-                cmds.rowLayout(
+            def deletePath(element, path):
+                if cmds.layout(element, ex=True):
+                    cmds.deleteUI(element)
+                    s.data["dirs"].remove(path)
+                print "Removing Export Folder:", path
+            def addRow(item):
+                row = cmds.rowLayout(
                     nc=2,
                     adj=2,
-                    bgc=(0.2,0.2,0.2) if cmds.objExists(item) else (1,0.4,0.4),
+                    h=30,
+                    bgc=(0.2,0.2,0.2) if isdir(absolutePath(item)) else (1,0.4,0.4),
                     p=listElement)
-                cmds.iconTextStaticLabel(
+                cmds.iconTextButton(
                     st="iconOnly",
-                    i="joint.svg" if cmds.objectType(item) == "joint" else "cube.png",
-                    h=25,
-                    w=25,
-                    l=item
+                    i="removeRenderable.png",
+                    c=lambda: deletePath(row, item)
                 )
                 cmds.text(
                     l=item,
                     al="left",
                 )
+            for item in items:
+                addRow(item)
     def performExport(s, *args):
         print "exporting anims"
 
