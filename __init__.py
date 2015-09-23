@@ -90,21 +90,29 @@ class AnimationGUI(object):
         cmds.separator()
         cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
         def addLayer(layer):
-            disable = False if layer in anim.data["layers"] else True
+            enable = True if layer in anim.data["layers"] else False
             cmds.rowLayout(nc=3, adj=3)
             cmds.iconTextCheckBox(
                 i="Solo_OFF.png",
-                si="Solo_ON.png"
+                si="Solo_ON.png",
+                v=anim.data["layers"][layer]["solo"] if enable else True,
+                en=enable,
+                cc=lambda x: s.updateLayer(layer, "solo", x)
             )
             cmds.iconTextCheckBox(
                 i="Mute_OFF.png",
-                si="Mute_ON.png"
+                si="Mute_ON.png",
+                v=anim.data["layers"][layer]["mute"] if enable else True,
+                en=enable,
+                cc=lambda x: s.updateLayer(layer, "mute", x)
             )
             cmds.text(
                 l=layer,
-                al="left")
+                al="left",
+                en=enable,
+            )
             cmds.setParent("..")
-        for layer in (anim.data["layers"].keys() + ["BaseAnimation"])
+        for layer in (anim.data["layers"].keys() + ["BaseAnimation"]):
             addLayer(layer)
         cmds.showWindow(window)
     def valid(s, element, ok):
@@ -124,12 +132,8 @@ class AnimationGUI(object):
             return True
         return False
     def updateLayer(s, layer, attr, value):
-        print layer, attr, value
+        anim.data["layers"][layer][attr] = value
 
-# Solo_ON.png
-# Solo_OFF.png
-# Mute_ON.png
-# Mute_OFF.png
 
 anim = Animation({"name": "Test animation"})
 AnimationGUI(anim)
