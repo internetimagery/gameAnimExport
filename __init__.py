@@ -535,13 +535,10 @@ FBXExportTangents -v false;
             cmds.select(objs, r=True)
             # Run our mel command behemoth
             print "Running Mel:"
-            for i, line in enumerate(command.strip().split("\n")):
-                print i+1, "\t", line
+            for i, line in enumerate(command.split("\n")):
+                if line:
+                    print i, "\t", line
             mel.eval(command)
-
-
-
-
 
 class cleanModify(object):
     """
