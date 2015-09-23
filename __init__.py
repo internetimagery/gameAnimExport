@@ -502,7 +502,7 @@ class MainWindow(object):
                 sub(validate, "_", normalize("NFKD", pref)),
                 sub(validate, "_", normalize("NFKD", data["name"]))
                 )
-            files = [realpath(join(d, filename)) for d in dirs]
+            files = [realpath(join(d, filename)).replace("\\", "/") for d in dirs]
             # Prepare export command (yikes)
             command =  """
 FBXResetExport; FBXExportInAscii -v true;
