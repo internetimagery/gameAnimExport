@@ -43,20 +43,23 @@ class AnimationCreate(object):
     def animLayers(s):
         rootLayer = cmds.animLayer(q=True, r=True)
         if rootLayer:
-            additional = []
+            additional = {}
             def search(layer):
                 children = cmds.animLayer(layer, q=True, c=True)
                 if children:
                     for child in children:
-                        additional.append(child)
+                        additional[child] = {}
                         search(child)
             search(rootLayer)
             if additional:
                 for layer in additional:
                     mute = cmds.animLayer(layer, q=True, m=True)
                     solo = cmds.animLayer(layer, q=True, s=True)
-                    print mute, solo, layer
-
+                    additional[layer] = {
+                        "mute"  : mute,
+                        "solo"  : solo
+                    }
+                return additional
         return {}
 
 AnimationCreate()
