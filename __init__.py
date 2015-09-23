@@ -38,6 +38,7 @@ def loadInfo(dataName):
 
 def saveInfo(dataName, data):
     cmds.fileInfo(dataName, dumps(data))
+    cmds.file(mf=True)
 
 def getAllLayers():
     rootLayer = cmds.animLayer(q=True, r=True)
@@ -493,10 +494,12 @@ class MainWindow(object):
             # Modify our layers
             if data["layers"]["solo"]:
                 for layer in data["layers"]["solo"]:
-                    cmds.animLayer(layer, e=True, s=True)
+                    if cmds.animLayer(layer, ex=True):
+                        cmds.animLayer(layer, e=True, s=True)
             if data["layers"]["mute"]:
                 for layer in data["layers"]["mute"]:
-                    cmds.animLayer(layer, e=True, m=True)
+                    if cmds.animLayer(layer, ex=True):
+                        cmds.animLayer(layer, e=True, m=True)
             # Create filename
             validate = r"[^\w_-]"
             filename = "%s@%s" % (
