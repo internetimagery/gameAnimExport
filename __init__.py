@@ -564,5 +564,3 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
-
-MainWindow()
