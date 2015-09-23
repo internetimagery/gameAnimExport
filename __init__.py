@@ -461,6 +461,7 @@ class MainWindow(object):
         # Get our animation data
         data = s.extractAnimationData([anim])[0]
         with cleanModify():
+            print "Exporting %s." % data["name"]
             # Prep our layers
             layers = getAllLayers()
             for layer in layers:
@@ -476,9 +477,7 @@ class MainWindow(object):
             if data["layers"]["mute"]:
                 for layer in data["layers"]["mute"]:
                     cmds.animLayer(layer, e=True, m=True)
-            framerange = data["range"]
 
-        print "exporting anims"
 
 class cleanModify(object):
     """
