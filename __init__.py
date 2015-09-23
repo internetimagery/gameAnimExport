@@ -171,7 +171,7 @@ class MainWindow(object):
             cmds.deleteUI(name)
         s.window = cmds.window(name, t="Animations", rtf=True)
         cmds.columnLayout(adj=True)
-        title("Export Options:")
+        title("Animation Export Options:")
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="animateSweep.png",
@@ -192,6 +192,10 @@ class MainWindow(object):
             )
         selWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
         cmds.setParent("..")
+        cmds.button(
+            l="Clear All",
+            c=lambda x: s.clearExportSelection(selWrapper)
+        )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
             i="menuIconFile.png",
@@ -200,12 +204,24 @@ class MainWindow(object):
             )
         dirWrapper = cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2), h=80)
         cmds.setParent("..")
+        cmds.button(
+            l="Clear All",
+            c=lambda x: s.clearExportFolders(dirWrapper)
+        )
         # Display Data data
         s.displayExportSelection(selWrapper, s.data["objs"])
         s.displayExportFolders(dirWrapper, s.data["dirs"])
         cmds.showWindow(s.window)
     def save(s):
         saveInfo(s.dataName, s.data)
+    def clearElement(s, element):
+        existing = cmds.layout(element, q=True, ca=True)
+        if existing:
+            for layout in existing:
+                try:
+                    cmds.deleteUI(existing)
+                except RuntimeError:
+                    pass
     def addExportSelection(s, listElement, items):
         if items:
             for item in items:
@@ -223,10 +239,13 @@ class MainWindow(object):
             s.data["objs"].remove(item)
             s.save()
         print "Removing Export Object:", item
+    def clearExportSelection(s, listElement):
+        s.data["objs"] = []
+        s.save()
+        print "Cleared Export Selection"
+        s.displayExportSelection(listElement, [])
     def displayExportSelection(s, listElement, items):
-        existing = cmds.layout(listElement, q=True, ca=True)
-        if existing:
-            cmds.deleteUI(existing)
+        s.clearElement(listElement)
         if items:
             def addSel(item):
                 exists = cmds.objExists(item)
@@ -282,10 +301,13 @@ class MainWindow(object):
             s.data["dirs"].remove(path)
             s.save()
         print "Removing Export Folder:", path
+    def clearExportFolders(s, listElement):
+        s.data["dirs"] = []
+        s.save()
+        print "Cleared Export Folders"
+        s.displayExportFolders(listElement, [])
     def displayExportFolders(s, listElement, items):
-        existing = cmds.layout(listElement, q=True, ca=True)
-        if existing:
-            cmds.deleteUI(existing)
+        s.clearElement(listElement)
         if items:
             def addRow(item):
                 row = cmds.rowLayout(
