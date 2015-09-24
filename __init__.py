@@ -182,12 +182,46 @@ class MainWindow(object):
             cmds.deleteUI(name)
         s.window = cmds.window(name, t="Animations", rtf=True)
         s.wrapper = cmds.columnLayout(adj=True)
-        s.buildGUI()
+        s.buildSelector()
         cmds.showWindow(s.window)
-        cmds.scriptJob(e=["PostSceneRead", s.buildGUI], p=s.window)
-        cmds.scriptJob(e=["NewSceneOpened", s.buildGUI], p=s.window)
-    def buildGUI(s):
-        s.dataName = "GameAnimExportData"
+        cmds.scriptJob(e=["PostSceneRead", s.buildSelector], p=s.window)
+        cmds.scriptJob(e=["NewSceneOpened", s.buildSelector], p=s.window)
+    def buildSelector(s):
+        dataNameBase = "GameAnimExportData"
+        index = 1
+        characters = {}
+        while True:
+            dataName = dataNameBase + str(index)
+            index += 1
+            try:
+                data = loadInfo(dataName)
+                characters[dataName] = data["pref"]
+            except:
+                break
+        s.clearElement(s.wrapper)
+        cmds.setParent(s.wrapper)
+        title("Select a character:")
+        cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
+        def addChar(char):
+            cmds.iconTextButton(
+                st="iconAndTextHorizontal",
+                i="ghostOff.png",
+                l=characters[char],
+                ann="Open the character: %s." % characters[char],
+                h=50,
+                c=lambda: s.buildCharacter(char)
+                )
+        for char in characters:
+            addChar(char)
+        cmds.setParent("..")
+        cmds.button(
+            l="Create New Character",
+            ann="Create a new character.",
+            c=lambda x: s.buildCharacter(dataName)
+        )
+
+    def buildCharacter(s, dataName):
+        s.dataName = dataName
         s.data = loadInfo(s.dataName)
         # Initialize Data
         s.data["pref"] = s.data.get("pref", "Default")
@@ -197,12 +231,17 @@ class MainWindow(object):
         s.data["anim"] = s.data.get("anim", {})
         s.clearElement(s.wrapper)
         cmds.setParent(s.wrapper)
+        cmds.button(
+            l="<-- Return to character selection.",
+            ann="Go back to the characer selection screen to pick a new character.",
+            c=lambda x: s.buildSelector()
+        )
         title("Animation Export Options:")
         prefix = cmds.textFieldGrp(
-            l="Animation Prefix: ",
+            l="Character Name: ",
             tx=s.data["pref"],
             adj=1,
-            ann="Choose a name to prefix all animation exports.",
+            ann="Choose a name that represents the character, to prefix all animation exports.",
             tcc=lambda x:s.changePrefix(prefix, x)
         )
         cmds.iconTextButton(
@@ -564,3 +603,5 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
+
+MainWindow()
