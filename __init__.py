@@ -486,10 +486,11 @@ class MainWindow(object):
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="aselect.png",
-                    ann="Remove this object from the export selection.",
+                    ann="Select the object in the scene.",
+                    en=exists,
                     h=iconSize,
                     w=iconSize,
-                    c=lambda: s.removeExportSelection(row, item)
+                    c=lambda: cmds.select(item, r=True) if cmds.objExists(item) else None
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
