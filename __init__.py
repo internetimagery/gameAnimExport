@@ -12,6 +12,7 @@ from re import sub
 from json import loads, dumps
 from datetime import datetime
 from unicodedata import normalize
+from collections import OrderedDict
 from os.path import isdir, join, dirname, basename, realpath, relpath
 
 def title(text):
@@ -43,23 +44,21 @@ def saveInfo(dataName, data):
 def getAllLayers():
     rootLayer = cmds.animLayer(q=True, r=True)
     if rootLayer:
-        additional = {}
-        def search(layer):
+        def search(layer, depth=0):
             children = cmds.animLayer(layer, q=True, c=True)
             if children:
                 for child in children:
-                    additional[child] = {}
-                    search(child)
+                    layers[child] = {"depth" : depth}
+                    search(child, depth+1)
+        layers = OrderedDict()
         search(rootLayer)
-        if additional:
-            for layer in additional:
+        if layers:
+            for layer in layers:
                 mute = cmds.animLayer(layer, q=True, m=True)
                 solo = cmds.animLayer(layer, q=True, s=True)
-                additional[layer] = {
-                    "mute"  : mute,
-                    "solo"  : solo
-                }
-            return additional
+                layers[layer]["mute"] = mute
+                layers[layer]["solo"] = solo
+            return layers
     return {}
 
 class Animation(object):
@@ -137,12 +136,12 @@ class AnimationGUI(object):
                 cc=lambda x: s.updateLayer(layer, "mute", x)
             )
             cmds.text(
-                l=layer,
+                l="|    " * s.layers[layer]["depth"] + layer if enable else layer,
                 al="left",
                 en=enable,
             )
             cmds.setParent("..")
-        for layer in (s.layers.keys() + ["BaseAnimation"]):
+        for layer in (reversed(["BaseAnimation"] + s.layers.keys())):
             addLayer(layer)
         cmds.showWindow(window)
     def valid(s, element, ok):
