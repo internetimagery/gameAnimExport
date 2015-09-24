@@ -540,7 +540,7 @@ class MainWindow(object):
                 sub(validate, "_", pref), # normalize("NFKD", pref)),
                 sub(validate, "_", data["name"]) # normalize("NFKD", data["name"]))
                 )
-            files = [realpath(join(d, filename)).replace("\\", "/") for d in dirs]
+            files = [realpath(join(d, filename)) for d in dirs]
             # Prepare export command (yikes)
             command =  """
 FBXResetExport; FBXExportInAscii -v true;
@@ -568,7 +568,7 @@ FBXExportTangents -v false;
     "end"   : data["range"][1]
     }
             for f in files:
-                command += "FBXExport -f \"%s.fbx\" -s;\n" % f
+                command += "FBXExport -f \"%s.fbx\" -s;\n" % f.replace("\\", "/")
             # Make our selection
             cmds.select(objs, r=True)
             # Run our mel command behemoth
