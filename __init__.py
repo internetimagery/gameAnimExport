@@ -347,7 +347,7 @@ class MainWindow(object):
             s.clearElement(listElement)
             def addAnim(item):
                 row = cmds.rowLayout(
-                    nc=5,
+                    nc=6,
                     adj=2,
                     p=listElement)
                 cmds.iconTextStaticLabel(
@@ -374,6 +374,21 @@ class MainWindow(object):
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
+                    i="traxFrameRange.png",
+                    ann="Go to frame range %s - %s." % (
+                        item.data["range"][0],
+                        item.data["range"][1]
+                    ),
+                    h=25,
+                    w=25,
+                    c=lambda: cmds.playbackOptions(
+                        e=True,
+                        min=item.data["range"][0],
+                        max=item.data["range"][1]
+                    )
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
                     i="setEdEditMode.png",
                     ann="Edit Animation",
                     h=25,
@@ -388,7 +403,7 @@ class MainWindow(object):
                     w=25,
                     c=lambda: s.removeAnimation(row, item)
                 )
-            for item in items:
+            for item in sorted(items, key=lambda x: x.data["name"]):
                 addAnim(item)
     def addExportSelection(s, listElement, items):
         if items:
