@@ -20,11 +20,11 @@ def textLimit(text, limit=100):
 
 def absolutePath(path):
     root = cmds.workspace(q=True, rd=True)
-    return join(root, path)
+    return join(root, path).replace("\\", "/")
 
 def relativePath(path):
     root = cmds.workspace(q=True, rd=True)
-    rPath = relpath(path, root)
+    rPath = relpath(path, root).replace("\\", "/")
     return absolutePath(path) if rPath[:2] == ".." else rPath
 
 def loadInfo(dataName):
@@ -613,5 +613,3 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
-
-MainWindow()
