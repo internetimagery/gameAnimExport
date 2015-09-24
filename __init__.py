@@ -268,6 +268,7 @@ class MainWindow(object):
             st="iconAndTextHorizontal",
             i="fluidCacheCreate.png",
             l="Add a new Animation.",
+            fn="boldLabelFont",
             ann="Create a new animation listing.",
             c=lambda: s.addAnimation(animWrapper)
             )
@@ -281,6 +282,7 @@ class MainWindow(object):
             st="iconAndTextHorizontal",
             i="selectByObject.png",
             l="Add selected objects to export.",
+            fn="boldLabelFont",
             ann="Select some objects (typically the rig) and press the button to add them.",
             c=lambda: s.addExportSelection(selWrapper, cmds.ls(sl=True))
             )
@@ -294,6 +296,7 @@ class MainWindow(object):
             st="iconAndTextHorizontal",
             i="menuIconFile.png", # fileOpen.png
             l="Add folder for exporting.",
+            fn="boldLabelFont",
             ann="Pick some folders to export animations into. Folders that don't exist will be skipped.",
             c=lambda: s.addExportFolder(dirWrapper)
             )
