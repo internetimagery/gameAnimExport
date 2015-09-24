@@ -69,11 +69,11 @@ def setLayers(solo=[], mute=[]): # include only layers that are on mute/solo
     # Modify our layers
     if solo:
         for layer in solo:
-            if cmds.animLayer(layer, ex=True):
+            if cmds.animLayer(layer, q=True, ex=True):
                 cmds.animLayer(layer, e=True, s=True)
     if mute:
         for layer in mute:
-            if cmds.animLayer(layer, ex=True):
+            if cmds.animLayer(layer, q=True, ex=True):
                 cmds.animLayer(layer, e=True, m=True)
 
 class Animation(object):
