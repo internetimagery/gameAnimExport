@@ -2,7 +2,7 @@
 # Created by Jason Dixon : 24/09/15
 # http://internetimagery.com
 
-
+import maya.mel as mel
 import maya.cmds as cmds
 from re import sub
 from json import loads, dumps
@@ -465,6 +465,7 @@ class MainWindow(object):
         folder = cmds.fileDialog2(ds=2, cap="Select a Folder.", fm=3, okc="Select Folder")
         if folder:
             folder = relativePath(folder[0])
+            print folder
             if folder in s.data["dirs"]:
                 cmds.confirmDialog(t="whoops", m="The folder you chose is already there.")
             else:
