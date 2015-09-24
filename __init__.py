@@ -57,6 +57,25 @@ def getAllLayers():
             return layers
     return {}
 
+def setLayers(solo=[], mute=[]): # include only layers that are on mute/solo
+    # Prep our layers
+    layers = getAllLayers()
+    for layer in layers:
+        options = layers[layer]
+        if options["solo"]:
+            cmds.animLayer(layer, e=True, s=False)
+        if layers[layer]["mute"]:
+            cmds.animLayer(layer, e=True, m=False)
+    # Modify our layers
+    if solo:
+        for layer in solo:
+            if cmds.animLayer(layer, ex=True):
+                cmds.animLayer(layer, e=True, s=True)
+    if mute:
+        for layer in mute:
+            if cmds.animLayer(layer, ex=True):
+                cmds.animLayer(layer, e=True, m=True)
+
 class Animation(object):
     """
     An animation entry
@@ -305,6 +324,16 @@ class MainWindow(object):
             cmds.control(element, e=True, bgc=(1,0.4,0.4))
     def extractAnimationData(s, anims):
         return sorted([a.data for a in anims], key=lambda x: x["range"][0])
+    def setAnimation(s, anim):
+        cmds.playbackOptions(
+            e=True,
+            min=anim.data["range"][0],
+            max=anim.data["range"][1]
+        )
+        setLayers(
+            solo = anim.data["layers"]["solo"],
+            mute = anim.data["layers"]["mute"]
+        )
     def validateAnimName(s, name): # Validate anim name
         if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
             return True
@@ -375,17 +404,13 @@ class MainWindow(object):
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="traxFrameRange.png",
-                    ann="Go to frame range %s - %s." % (
+                    ann="Go to frame range %s - %s and set animaton layers." % (
                         item.data["range"][0],
                         item.data["range"][1]
                     ),
                     h=25,
                     w=25,
-                    c=lambda: cmds.playbackOptions(
-                        e=True,
-                        min=item.data["range"][0],
-                        max=item.data["range"][1]
-                    )
+                    c=lambda: s.setAnimation(item)
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
@@ -533,23 +558,11 @@ class MainWindow(object):
             return cmds.configDialog(t="Oh no..", m="There was an issue with you anim data.")
         with cleanModify():
             print "Exporting %s." % data["name"]
-            # Prep our layers
-            layers = getAllLayers()
-            for layer in layers:
-                options = layers[layer]
-                if options["solo"]:
-                    cmds.animLayer(layer, e=True, s=False)
-                if layers[layer]["mute"]:
-                    cmds.animLayer(layer, e=True, m=False)
-            # Modify our layers
-            if data["layers"]["solo"]:
-                for layer in data["layers"]["solo"]:
-                    if cmds.animLayer(layer, ex=True):
-                        cmds.animLayer(layer, e=True, s=True)
-            if data["layers"]["mute"]:
-                for layer in data["layers"]["mute"]:
-                    if cmds.animLayer(layer, ex=True):
-                        cmds.animLayer(layer, e=True, m=True)
+            # Set our layers correctly
+            setLayers(
+                solo = data["layers"]["solo"],
+                mute = data["layers"]["mute"]
+            )
             # Create filename
             validate = r"[^\w_-]"
             filename = "%s@%s" % (
