@@ -9,6 +9,7 @@ from json import loads, dumps
 from datetime import datetime
 from unicodedata import normalize
 from collections import OrderedDict
+from webbrowser import open as displayFolder
 from os.path import isdir, join, dirname, basename, realpath, relpath
 
 def title(text):
@@ -472,7 +473,7 @@ class MainWindow(object):
                 elif exists:
                     icon = "cube.png"
                 else:
-                    icon = "menuIconConstraints.png"
+                    icon = "vacantCell.png"
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
                     i=icon,
@@ -530,15 +531,21 @@ class MainWindow(object):
         s.clearElement(listElement)
         if items:
             def addRow(item):
+                real = absolutePath(item)
+                exists = isdir(real)
+                if exists:
+                    icon = "navButtonBrowse.png"
+                else:
+                    icon = "vacantCell.png"
                 row = cmds.rowLayout(
                     nc=4,
                     adj=2,
                     h=30,
-                    bgc=(0.2,0.2,0.2) if isdir(absolutePath(item)) else (1,0.4,0.4),
+                    bgc=(0.2,0.2,0.2) if exists else (1,0.4,0.4),
                     p=listElement)
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
-                    i="navButtonBrowse.png",
+                    i=icon,
                     h=iconSize,
                     w=iconSize
                 )
@@ -549,10 +556,11 @@ class MainWindow(object):
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="traxOpenLibrary.png",
-                    ann="Remove this folder from the export list.",
+                    ann="Open the folder.",
+                    en=exists,
                     h=iconSize,
                     w=iconSize,
-                    c=lambda: s.removeExportFolder(row, item)
+                    c=lambda: displayFolder(real) if isdir(real) else None
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
@@ -655,5 +663,3 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
-
-MainWindow()
