@@ -76,6 +76,8 @@ def setLayers(solo=[], mute=[]): # include only layers that are on mute/solo
             if cmds.animLayer(layer, q=True, ex=True):
                 cmds.animLayer(layer, e=True, m=True)
 
+iconSize = 25 # Global icon size for all listings
+
 class Animation(object):
     """
     An animation entry
@@ -263,7 +265,7 @@ class MainWindow(object):
         )
         cmds.iconTextButton(
             st="iconAndTextHorizontal",
-            i="animateSweep.png",
+            i="fluidCacheCreate.png",
             l="Add a new Animation.",
             ann="Create a new animation listing.",
             c=lambda: s.addAnimation(animWrapper)
@@ -385,8 +387,8 @@ class MainWindow(object):
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
                     i="animCurveTA.svg",
-                    h=25,
-                    w=25
+                    h=iconSize,
+                    w=iconSize
                 )
                 cmds.text(
                     l="%s - %s : %s" % (
@@ -400,8 +402,8 @@ class MainWindow(object):
                     st="iconOnly",
                     i="render.png",
                     ann="Export Animation",
-                    h=25,
-                    w=25,
+                    h=iconSize,
+                    w=iconSize,
                     c=lambda: s.performExport(item)
                 )
                 cmds.iconTextButton(
@@ -411,24 +413,24 @@ class MainWindow(object):
                         item.data["range"][0],
                         item.data["range"][1]
                     ),
-                    h=25,
-                    w=25,
+                    h=iconSize,
+                    w=iconSize,
                     c=lambda: s.setAnimation(item)
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="setEdEditMode.png",
                     ann="Edit Animation",
-                    h=25,
-                    w=25,
+                    h=iconSize,
+                    w=iconSize,
                     c=lambda: s.editAnimation(listElement, item)
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
                     i="removeRenderable.png",
                     ann="Remove this animation.",
-                    h=25,
-                    w=25,
+                    h=iconSize,
+                    w=iconSize,
                     c=lambda: s.removeAnimation(row, item)
                 )
             for item in sorted(items, key=lambda x: x.data["name"]):
@@ -461,7 +463,7 @@ class MainWindow(object):
             def addSel(item):
                 exists = cmds.objExists(item)
                 row = cmds.rowLayout(
-                    nc=3,
+                    nc=4,
                     adj=2,
                     bgc=(0.2,0.2,0.2) if exists else (1,0.4,0.4),
                     p=listElement)
@@ -474,8 +476,8 @@ class MainWindow(object):
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
                     i=icon,
-                    h=20,
-                    w=20,
+                    h=iconSize,
+                    w=iconSize,
                 )
                 cmds.text(
                     l=textLimit(item),
@@ -483,8 +485,18 @@ class MainWindow(object):
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
+                    i="aselect.png",
+                    ann="Remove this object from the export selection.",
+                    h=iconSize,
+                    w=iconSize,
+                    c=lambda: s.removeExportSelection(row, item)
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
                     i="removeRenderable.png",
                     ann="Remove this object from the export selection.",
+                    h=iconSize,
+                    w=iconSize,
                     c=lambda: s.removeExportSelection(row, item)
                 )
             for item in items:
@@ -518,7 +530,7 @@ class MainWindow(object):
         if items:
             def addRow(item):
                 row = cmds.rowLayout(
-                    nc=3,
+                    nc=4,
                     adj=2,
                     h=30,
                     bgc=(0.2,0.2,0.2) if isdir(absolutePath(item)) else (1,0.4,0.4),
@@ -526,6 +538,8 @@ class MainWindow(object):
                 cmds.iconTextStaticLabel(
                     st="iconOnly",
                     i="navButtonBrowse.png",
+                    h=iconSize,
+                    w=iconSize
                 )
                 cmds.text(
                     l=textLimit(item),
@@ -533,8 +547,18 @@ class MainWindow(object):
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
+                    i="traxOpenLibrary.png",
+                    ann="Remove this folder from the export list.",
+                    h=iconSize,
+                    w=iconSize,
+                    c=lambda: s.removeExportFolder(row, item)
+                )
+                cmds.iconTextButton(
+                    st="iconOnly",
                     i="removeRenderable.png",
                     ann="Remove this folder from the export list.",
+                    h=iconSize,
+                    w=iconSize,
                     c=lambda: s.removeExportFolder(row, item)
                 )
             for item in items:
@@ -630,3 +654,5 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
+
+MainWindow()
