@@ -225,8 +225,11 @@ class MainWindow(object):
                 h=50,
                 c=lambda: s.buildCharacter(char)
                 )
-        for char in characters:
-            addChar(char)
+        if characters:
+            for char in characters:
+                addChar(char)
+        else:
+            cmds.text(l="There are no characters set for this scene.\nTime to create one. :)")
         cmds.setParent("..")
         cmds.button(
             l="Create New Character",
