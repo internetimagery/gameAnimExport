@@ -1,10 +1,6 @@
-
-# Save scene information json into fileInfo
-# toolbox for viewing information
-# seperate window for adding information
-# store animation layer information, turned on or off, per anim
-# store frame information per animaton
-# store rig information (only once?)
+# Game Animation Export Tool
+# Created by Jason Dixon : 24/09/15
+# http://internetimagery.com
 
 
 import maya.cmds as cmds
