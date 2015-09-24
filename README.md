@@ -8,7 +8,12 @@ Includes support for animation modification via animation layers.
 To install, either:
 
 * drag the "install.mel" file into your Maya viewport
-* or drag the entire folder containing "__init__.py" (named "gameAnimExport") into your maya scripts directory. Creating a shelf icon with the code:
+
+* or drag the entire folder "gameAnimExport" containing:
+```
+__init__.py
+```
+into your maya scripts directory. Creating a shelf icon with the code:
 ```
 import gameAnimExport as game
 game.MainWindow()
