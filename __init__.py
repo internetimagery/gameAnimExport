@@ -20,12 +20,12 @@ def textLimit(text, limit=100):
 
 def absolutePath(path):
     root = cmds.workspace(q=True, rd=True)
-    return join(root, path).replace("\\", "/")
+    return realpath(join(root, path))
 
 def relativePath(path):
     root = cmds.workspace(q=True, rd=True)
-    rPath = relpath(path, root).replace("\\", "/")
-    return absolutePath(path) if rPath[:2] == ".." else rPath
+    rPath = relpath(path, root)
+    return absolutePath(path).replace("\\", "/") if rPath[:2] == ".." else rPath.replace("\\", "/")
 
 def loadInfo(dataName):
     try:
