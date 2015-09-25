@@ -626,7 +626,7 @@ FBXExportShapes -v true;
 FBXExportInputConnections -v false;
 FBXExportEmbeddedTextures -v false;
 """ % {
-    "axis"  : "y",#cmds.upAxis(q=True, ax=True),
+    "axis"  : cmds.upAxis(q=True, ax=True),
     "start" : data["range"][0],
     "end"   : data["range"][1]
     }
@@ -639,7 +639,7 @@ FBXExportEmbeddedTextures -v false;
             for i, line in enumerate(command.split("\n")):
                 if line:
                     print i, "\t", line
-            # mel.eval(command)
+            mel.eval(command)
             # # Save out a convenience json file too
             # for f in files:
             #     with open(f + ".json", "w") as w:
@@ -691,5 +691,3 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
-
-MainWindow()
