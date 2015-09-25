@@ -597,11 +597,8 @@ class MainWindow(object):
             return cmds.configDialog(t="Oh no..", m="There was an issue with you anim data.")
         with cleanModify():
             print "Exporting %s." % data["name"]
-            # Set our layers correctly
-            setLayers(
-                solo = data["layers"]["solo"],
-                mute = data["layers"]["mute"]
-            )
+            # Prep our animation
+            s.setAnimation(anim)
             # Create filename
             validate = r"[^\w_-]"
             filename = "%s@%s" % (
@@ -615,7 +612,8 @@ FBXResetExport; FBXExportInAscii -v true;
 FBXExportCameras -v false; FBXExportLights -v false;
 FBXExportUpAxis %(axis)s; FBXExportUseSceneName -v false;
 FBXExportGenerateLog -v false; FBXExportConstraints -v false;
-FBXExportAxisConversionMethod convertAnimation;
+FBXExportAxisConversionMethod addFbxRoot;
+FBXProperty "Export|IncludeGrp|Animation" -v true;
 FBXExportBakeComplexAnimation -v true;
 FBXExportBakeComplexStart -v %(start)s;
 FBXExportBakeComplexEnd -v %(end)s;
@@ -627,11 +625,8 @@ FBXExportSkins -v true;
 FBXExportShapes -v true;
 FBXExportInputConnections -v false;
 FBXExportEmbeddedTextures -v false;
-FBXExportSmoothMesh -v false;
-FBXExportSmoothingGroups -v false;
-FBXExportTangents -v false;
 """ % {
-    "axis"  : cmds.upAxis(q=True, ax=True),
+    "axis"  : "y",#cmds.upAxis(q=True, ax=True),
     "start" : data["range"][0],
     "end"   : data["range"][1]
     }
@@ -644,7 +639,7 @@ FBXExportTangents -v false;
             for i, line in enumerate(command.split("\n")):
                 if line:
                     print i, "\t", line
-            mel.eval(command)
+            # mel.eval(command)
             # # Save out a convenience json file too
             # for f in files:
             #     with open(f + ".json", "w") as w:
@@ -653,6 +648,36 @@ FBXExportTangents -v false;
             #             "end"       : data["range"][1],
             #             "modified"  : str(datetime.now())
             #         }))
+
+            # Manual bake
+            # skeleton = cmds.ls(sl=True)
+            # attributes = [
+            #     "tx", "ty", "tz",
+            #     "rx", "ry", "rz",
+            #     "sx", "sy", "sz"
+            # ]
+            # cmds.bakeResults( skeleton,
+            #     t=(
+            #         anim.data["range"][0],
+            #         anim.data["range"][1]),
+            #     attribute=attributes,
+            #     simulation=True,
+            #     disableImplicitControl=True,
+            #     sparseAnimCurveBake=True,
+            #     removeBakedAttributeFromLayer=True,
+            #     minimizeRotation=True,
+            #     smart=(True, 5)
+            #     )
+            # # Lock off edges
+            # cmds.setKeyframe(skeleton, i=True, at=attributes, t=minFrame) # Set keys on the edges of time
+            # cmds.setKeyframe(skeleton, i=True, at=attributes, t=maxFrame) # Set keys on the edges of time
+            # # Remove excess if any
+            # keyTimes = sorted(set(cmds.keyframe(skeleton, q=True, tc=True)))
+            # if keyTimes[0] < anim.data["range"][0]:
+            #     cmds.cutKey(skeleton, at=attributes, t=(keyTimes[0], minFrame-0.1), cl=True)
+            # if anim.data["range"][1] < keyTimes[-1]:
+            #     cmds.cutKey(skeleton, at=attributes, t=(maxFrame+0.1, keyTimes[-1]), cl=True)
+
 
 class cleanModify(object):
     """
@@ -666,3 +691,5 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
+
+MainWindow()
