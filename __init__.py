@@ -196,7 +196,6 @@ class MainWindow(object):
         # Build window
         name = "GameAnimExportWindow"
         s.animationData = []
-        s.dirty = False
         if cmds.window(name, ex=True):
             cmds.deleteUI(name)
         s.window = cmds.window(name, t="Animations", rtf=True)
@@ -246,6 +245,7 @@ class MainWindow(object):
 
     def buildCharacter(s, dataName):
         s.dataName = dataName
+        s.dirty = False
         s.data = loadInfo(s.dataName)
         # Initialize Data
         s.data["pref"] = s.data.get("pref", "Default")
@@ -317,6 +317,7 @@ class MainWindow(object):
         s.displayAnimations(animWrapper, s.animationData    )
         s.displayExportSelection(selWrapper, s.data["objs"])
         s.displayExportFolders(dirWrapper, s.data["dirs"])
+        s.highlightAnimation()
     def save(s):
         saveInfo(s.dataName, s.data)
     def clearElement(s, element):
@@ -455,6 +456,7 @@ class MainWindow(object):
                 for row in [s.displayAnim[r] for r in s.displayAnim]:
                     if cmds.layout(row, ex=True):
                         cmds.layout(row, e=True, bgc=[0.2,0.2,0.2])
+                        s.dirty = False
             for anim in s.animationData:
                 l = anim.data["layers"]
                 r = anim.data["range"]
@@ -462,7 +464,7 @@ class MainWindow(object):
                     if r[0] < frame < r[1]:
                         row = s.displayAnim[anim]
                         if cmds.layout(row, ex=True):
-                            cmds.layout(row, e=True, bgc=[0.4,0.4,0.4])
+                            cmds.layout(row, e=True, bgc=[0.25,0.25,0.25])
                             s.dirty = True
     def addExportSelection(s, listElement, items):
         if items:
@@ -716,3 +718,5 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
+
+MainWindow()
