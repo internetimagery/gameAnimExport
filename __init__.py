@@ -195,6 +195,8 @@ class MainWindow(object):
     def __init__(s):
         # Build window
         name = "GameAnimExportWindow"
+        s.animationData = []
+        s.dirty = False
         if cmds.window(name, ex=True):
             cmds.deleteUI(name)
         s.window = cmds.window(name, t="Animations", rtf=True)
@@ -203,7 +205,9 @@ class MainWindow(object):
         cmds.showWindow(s.window)
         cmds.scriptJob(e=["PostSceneRead", s.buildSelector], p=s.window)
         cmds.scriptJob(e=["NewSceneOpened", s.buildSelector], p=s.window)
+        cmds.scriptJob(e=["timeChanged", s.highlightAnimation], p=s.window)
     def buildSelector(s):
+        s.animationData = []
         dataNameBase = "GameAnimExportData"
         index = 1
         characters = {}
@@ -383,6 +387,7 @@ class MainWindow(object):
     def displayAnimations(s, listElement, items):
         if items:
             s.clearElement(listElement)
+            s.displayAnim = {} # Store reference to GUI frames
             def addAnim(item):
                 row = cmds.rowLayout(
                     nc=6,
@@ -437,8 +442,28 @@ class MainWindow(object):
                     w=iconSize,
                     c=lambda: s.removeAnimation(row, item)
                 )
+                s.displayAnim[item] = row
             for item in sorted(items, key=lambda x: x.data["name"]):
                 addAnim(item)
+    def highlightAnimation(s):
+        if s.animationData:
+            frame = cmds.currentTime(q=True)
+            layers = getAllLayers()
+            mute = sorted([l for l in layers if layers[l]["mute"]])
+            solo = sorted([l for l in layers if layers[l]["solo"]])
+            if s.dirty:
+                for row in [s.displayAnim[r] for r in s.displayAnim]:
+                    if cmds.layout(row, ex=True):
+                        cmds.layout(row, e=True, bgc=[0.2,0.2,0.2])
+            for anim in s.animationData:
+                l = anim.data["layers"]
+                r = anim.data["range"]
+                if sorted(l["mute"]) == mute and sorted(l["solo"]) == solo:
+                    if r[0] < frame < r[1]:
+                        row = s.displayAnim[anim]
+                        if cmds.layout(row, ex=True):
+                            cmds.layout(row, e=True, bgc=[0.4,0.4,0.4])
+                            s.dirty = True
     def addExportSelection(s, listElement, items):
         if items:
             for item in items:
