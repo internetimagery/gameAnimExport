@@ -4,7 +4,7 @@
 
 import maya.mel as mel
 import maya.cmds as cmds
-from re import sub
+from re import sub, match
 from json import loads, dumps
 from datetime import datetime
 from unicodedata import normalize
@@ -349,8 +349,9 @@ class MainWindow(object):
             mute = anim.data["layers"]["mute"]
         )
     def validateAnimName(s, name): # Validate anim name
-        if name and 1 < len(name) < 30 and name not in [a.data["name"] for a in s.animationData]:
-            return True
+        if match(r"^[\w\s]{2,80}$", name):
+            if name.lower().replace(" ", "_") not in [a.data["name"].lower().replace(" ", "_") for a in s.animationData]:
+                return True
         return False
     def addAnimation(s, listElement):
         def dataChanged():
@@ -718,5 +719,3 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
-
-MainWindow()
