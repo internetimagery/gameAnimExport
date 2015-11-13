@@ -2,12 +2,7 @@
 # Created by Jason Dixon : 24/09/15
 # http://internetimagery.com
 
-try:
-    import cPickle as pickle
-except ImportError:
-    import pickle
 import re
-import json
 import os.path
 import datetime
 import webbrowser
@@ -15,6 +10,10 @@ import unicodedata
 import collections
 import maya.mel as mel
 import maya.cmds as cmds
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
 
 class Node(object):
     """ Store Data in Object """
@@ -53,6 +52,8 @@ def relativePath(path):
     rPath = os.path.relpath(path, root)
     return absolutePath(path).replace("\\", "/") if rPath[:2] == ".." else rPath.replace("\\", "/")
 
+# Loading data from old datatype for backwards compatibility
+import json
 def loadLegacy(dataName):
     try:
         return json.loads(cmds.fileInfo(dataName, q=True)[0].decode("unicode_escape"))
@@ -709,6 +710,8 @@ FBXExportEmbeddedTextures -v false;
             #         }))
 
             # Manual bake
+            # TO USE LESS KEYFRAMES
+
             # skeleton = cmds.ls(sl=True)
             # attributes = [
             #     "tx", "ty", "tz",
@@ -750,5 +753,3 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
-
-MainWindow()
