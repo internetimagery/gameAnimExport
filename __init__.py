@@ -61,10 +61,7 @@ def loadLegacy(dataName):
         return {}
 
 def loadInfo(dataName):
-    data = STORE.data.get(dataName, {})
-    #LEGACY
-    data = data or loadLegacy(dataName)
-    return data
+    return STORE.data.get(dataName, {}) or loadLegacy(dataName)
 
 def saveInfo(dataName, data):
     STORE.data[dataName] = data
