@@ -2,15 +2,40 @@
 # Created by Jason Dixon : 24/09/15
 # http://internetimagery.com
 
+try:
+    import cPickle as pickle
+except ImportError:
+    import pickle
+import re
+import json
+import os.path
+import datetime
+import webbrowser
+import unicodedata
+import collections
 import maya.mel as mel
 import maya.cmds as cmds
-from re import sub, match
-from json import loads, dumps
-from datetime import datetime
-from unicodedata import normalize
-from collections import OrderedDict
-from webbrowser import open as displayFolder
-from os.path import isdir, join, dirname, basename, realpath, relpath
+
+class Node(object):
+    """ Store Data in Object """
+    def __init__(s, name):
+        s.name = name
+        s.check()
+        try:
+            s.data = pickle.loads(str(cmds.getAttr("%s.notes" % s.name)))
+        except pickle.UnpicklingError:
+            s.data = {}
+    def check(s):
+        if not cmds.objExists(s.name):
+            sel = cmds.ls(sl=True)
+            s.name = cmds.group(n=s.name, em=True)
+            cmds.select(sel, r=True)
+        if not cmds.attributeQuery("notes", n=s.name, ex=True):
+            cmds.addAttr(s.name, ln="notes", sn="nts", dt="string", s=True)
+    def save(s):
+        cmds.setAttr("%s.notes" % s.name, l=False) # unlock attribute
+        cmds.setAttr("%s.notes" % s.name, pickle.dumps(s.data, 0), type="string", l=True)
+STORE = Node("GameExportData")
 
 def title(text):
     cmds.text(l=text, al="left", h=30)
@@ -21,22 +46,28 @@ def textLimit(text, limit=100):
 
 def absolutePath(path):
     root = cmds.workspace(q=True, rd=True)
-    return realpath(join(root, path))
+    return os.path.realpath(os.path.join(root, path))
 
 def relativePath(path):
     root = cmds.workspace(q=True, rd=True)
-    rPath = relpath(path, root)
+    rPath = os.path.relpath(path, root)
     return absolutePath(path).replace("\\", "/") if rPath[:2] == ".." else rPath.replace("\\", "/")
 
-def loadInfo(dataName):
+def loadLegacy(dataName):
     try:
-        return loads(cmds.fileInfo(dataName, q=True)[0].decode("unicode_escape"))
+        return json.loads(cmds.fileInfo(dataName, q=True)[0].decode("unicode_escape"))
     except (ValueError, IndexError):
         return {}
 
+def loadInfo(dataName):
+    data = STORE.data.get(dataName, {})
+    #LEGACY
+    data = data or loadLegacy(dataName)
+    return data
+
 def saveInfo(dataName, data):
-    cmds.fileInfo(dataName, dumps(data))
-    cmds.file(mf=True)
+    STORE.data[dataName] = data
+    STORE.save()
 
 def getAllLayers():
     rootLayer = cmds.animLayer(q=True, r=True)
@@ -47,7 +78,7 @@ def getAllLayers():
                 for child in children:
                     layers[child] = {"depth" : depth}
                     search(child, depth+1)
-        layers = OrderedDict()
+        layers = collections.OrderedDict()
         search(rootLayer)
         if layers:
             for layer in layers:
@@ -349,7 +380,7 @@ class MainWindow(object):
             mute = anim.data["layers"]["mute"]
         )
     def validateAnimName(s, name): # Validate anim name
-        if match(r"^[\w\s]{2,80}$", name):
+        if re.match(r"^[\w\s]{2,80}$", name):
             if name.lower().replace(" ", "_") not in [a.data["name"].lower().replace(" ", "_") for a in s.animationData]:
                 return True
         return False
@@ -563,7 +594,7 @@ class MainWindow(object):
         if items:
             def addRow(item):
                 real = absolutePath(item)
-                exists = isdir(real)
+                exists = os.path.isdir(real)
                 if exists:
                     icon = "navButtonBrowse.png"
                 else:
@@ -591,7 +622,7 @@ class MainWindow(object):
                     en=exists,
                     h=iconSize,
                     w=iconSize,
-                    c=lambda: displayFolder(real) if isdir(real) else None
+                    c=lambda: webbrowser.open(real) if os.path.isdir(real) else None
                 )
                 cmds.iconTextButton(
                     st="iconOnly",
@@ -616,7 +647,7 @@ class MainWindow(object):
         if not s.data["dirs"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add at least one folder to export into.")
         dirs = [absolutePath(d) for d in s.data["dirs"]]
-        dirs = [d for d in dirs if isdir(d)]
+        dirs = [d for d in dirs if os.path.isdir(d)]
         if not dirs:
             return cmds.confirmDialog(t="Oh no..", m="None of the chosen folders could be found.")
         # Get our animation data
@@ -630,10 +661,10 @@ class MainWindow(object):
             # Create filename
             validate = r"[^\w_-]"
             filename = "%s@%s" % (
-                sub(validate, "_", pref), # normalize("NFKD", pref)),
-                sub(validate, "_", data["name"]) # normalize("NFKD", data["name"]))
+                re.sub(validate, "_", pref), # unicodedata.normalize("NFKD", pref)),
+                re.sub(validate, "_", data["name"]) # unicodedata.normalize("NFKD", data["name"]))
                 )
-            files = [realpath(join(d, filename)) for d in dirs]
+            files = [os.path.realpath(os.path.join(d, filename)) for d in dirs]
             # Prepare export command (yikes)
             command =  """
 FBXResetExport; FBXExportInAscii -v true;
@@ -671,10 +702,10 @@ FBXExportEmbeddedTextures -v false;
             # # Save out a convenience json file too
             # for f in files:
             #     with open(f + ".json", "w") as w:
-            #         w.write(dumps({
+            #         w.write(json.dumps({
             #             "start"     : data["range"][0],
             #             "end"       : data["range"][1],
-            #             "modified"  : str(datetime.now())
+            #             "modified"  : str(datetime.datetime.now())
             #         }))
 
             # Manual bake
@@ -719,3 +750,5 @@ class cleanModify(object):
         cmds.select(s.selection, r=True)
         cmds.undoInfo(cck=True)
         cmds.undo()
+
+MainWindow()
