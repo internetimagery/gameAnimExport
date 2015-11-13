@@ -19,11 +19,14 @@ class Node(object):
     """ Store Data in Object """
     def __init__(s, name):
         s.name = name
-        s.check()
+        s._data = {}
+    @property
+    def data(s):
         try:
-            s.data = pickle.loads(str(cmds.getAttr("%s.notes" % s.name)))
-        except pickle.UnpicklingError:
-            s.data = {}
+            s._data = pickle.loads(str(cmds.getAttr("%s.notes" % s.name)))
+        except (ValueError, pickle.UnpicklingError):
+            s._data = {}
+        return s._data
     def check(s):
         if not cmds.objExists(s.name):
             sel = cmds.ls(sl=True)
@@ -32,8 +35,9 @@ class Node(object):
         if not cmds.attributeQuery("notes", n=s.name, ex=True):
             cmds.addAttr(s.name, ln="notes", sn="nts", dt="string", s=True)
     def save(s):
+        s.check()
         cmds.setAttr("%s.notes" % s.name, l=False) # unlock attribute
-        cmds.setAttr("%s.notes" % s.name, pickle.dumps(s.data, 0), type="string", l=True)
+        cmds.setAttr("%s.notes" % s.name, pickle.dumps(s._data, 0), type="string", l=True)
 STORE = Node("GameExportData")
 
 def title(text):
