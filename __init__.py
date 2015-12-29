@@ -15,6 +15,11 @@ try:
 except ImportError:
     import pickle
 
+class Callback(object):
+    """ Generic Callback """
+    def __init__(s, func, *args, **kwargs): s.__dict__.update(**locals())
+    def __call__(s, *_): return s.func(*s.args, **s.kwargs)
+
 class Node(object):
     """ Store Data in Object """
     def __init__(s, name):
@@ -636,7 +641,7 @@ class MainWindow(object):
                 )
             for item in items:
                 addRow(item)
-    def performExport(s, anim):
+    def performExport(s, anim, prebake=False):
         # Validate scene data before export
         if not s.data["pref"]:
             return cmds.confirmDialog(t="Oh no..", m="Please add a prefix.")
@@ -660,6 +665,33 @@ class MainWindow(object):
             print "Exporting %s." % data["name"]
             # Prep our animation
             s.setAnimation(anim)
+
+            if prebake: # Bake out animation manually before export
+
+                cmds.bakeResults(
+                    objs,
+                    simulation=True,
+                    hierarchy="below",
+                    t=tuple(anim.data["range"]),
+                    sampleBy=1, # Mass keyframes, each frame!
+                    disableImplicitControl=True,
+                    # sparseAnimCurveBake=True,
+                    removeBakedAttributeFromLayer=True,
+                    # smart=(True, 5)
+                    minimizeRotation=True
+                )
+                # Wall off edges of time
+                cmds.setKeyframe(objs, i=True, t=anim.data["range"][0])
+                cmds.setKeyframe(objs, i=True, t=anim.data["range"][1])
+                # Remove Excess frames
+                times = cmds.keyframe(objs, q=True, tc=True)
+                frame_range = min(times), max(times)
+                if frame_range[0] < anim.data["range"][0]:
+                    cmds.cutKey(objs, t=(frame_range[0], anim.data["range"][0] - 0.1), cl=True)
+                if frame_range[1] > anim.data["range"][1]:
+                    cmds.cutKey(objs, t=(anim.data["range"][1] + 0.1, frame_range[1]), cl=True)
+
+
             # Create filename
             validate = r"[^\w_-]"
             filename = "%s@%s" % (
@@ -710,36 +742,6 @@ FBXExportEmbeddedTextures -v false;
             #             "modified"  : str(datetime.datetime.now())
             #         }))
 
-            # Manual bake
-            # TO USE LESS KEYFRAMES
-
-            # skeleton = cmds.ls(sl=True)
-            # attributes = [
-            #     "tx", "ty", "tz",
-            #     "rx", "ry", "rz",
-            #     "sx", "sy", "sz"
-            # ]
-            # cmds.bakeResults( skeleton,
-            #     t=(
-            #         anim.data["range"][0],
-            #         anim.data["range"][1]),
-            #     attribute=attributes,
-            #     simulation=True,
-            #     disableImplicitControl=True,
-            #     sparseAnimCurveBake=True,
-            #     removeBakedAttributeFromLayer=True,
-            #     minimizeRotation=True,
-            #     smart=(True, 5)
-            #     )
-            # # Lock off edges
-            # cmds.setKeyframe(skeleton, i=True, at=attributes, t=minFrame) # Set keys on the edges of time
-            # cmds.setKeyframe(skeleton, i=True, at=attributes, t=maxFrame) # Set keys on the edges of time
-            # # Remove excess if any
-            # keyTimes = sorted(set(cmds.keyframe(skeleton, q=True, tc=True)))
-            # if keyTimes[0] < anim.data["range"][0]:
-            #     cmds.cutKey(skeleton, at=attributes, t=(keyTimes[0], minFrame-0.1), cl=True)
-            # if anim.data["range"][1] < keyTimes[-1]:
-            #     cmds.cutKey(skeleton, at=attributes, t=(maxFrame+0.1, keyTimes[-1]), cl=True)
 
 
 class cleanModify(object):
