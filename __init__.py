@@ -3,6 +3,7 @@
 # http://internetimagery.com
 
 import re
+import report
 import os.path
 import datetime
 import webbrowser
@@ -14,11 +15,6 @@ try:
     import cPickle as pickle
 except ImportError:
     import pickle
-
-class Callback(object):
-    """ Generic Callback """
-    def __init__(s, func, *args, **kwargs): s.__dict__.update(**locals())
-    def __call__(s, *_): return s.func(*s.args, **s.kwargs)
 
 class Node(object):
     """ Store Data in Object """
@@ -150,61 +146,63 @@ class AnimationGUI(object):
         """
         Modify animation window
         """
-        s.anim = anim
-        s.validation = validation # Name validation
-        s.change = changeCallback
-        s.layers = getAllLayers() # Grab up to date layer info
-        winName = "Animation_Entry"
-        if cmds.window(winName, ex=True):
-            cmds.deleteUI(winName)
-        window = cmds.window(winName, t="Animation", rtf=True)
-        cmds.columnLayout(adj=True)
-        title("Create / Edit an Animation:")
-        name = cmds.textFieldGrp(
-            l="Name: ",
-            tx=s.anim.data["name"],
-            adj=2,
-            tcc=lambda x: s.valid(name, s.updateName(x)))
-        frame = cmds.intFieldGrp(
-            l="Frame Range: ",
-            nf=2,
-            v1=s.anim.data["range"][0],
-            v2=s.anim.data["range"][1],
-            cc= lambda x, y: s.valid(frame, s.updateRange(x,y))
-        )
-        title("Animation Layers")
-        cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
-        def addLayer(layer):
-            enable = False if layer == "BaseAnimation" else True
-            cmds.rowLayout(nc=3, adj=3)
-            cmds.iconTextCheckBox(
-                i="Solo_OFF.png",
-                si="Solo_ON.png",
-                v=True if enable and layer in s.anim.data["layers"]["solo"] else False,
-                en=enable,
-                cc=lambda x: s.updateLayer(layer, "solo", x)
+        with report.Report():
+            s.anim = anim
+            s.validation = validation # Name validation
+            s.change = changeCallback
+            s.layers = getAllLayers() # Grab up to date layer info
+            winName = "Animation_Entry"
+            if cmds.window(winName, ex=True):
+                cmds.deleteUI(winName)
+            window = cmds.window(winName, t="Animation", rtf=True)
+            cmds.columnLayout(adj=True)
+            title("Create / Edit an Animation:")
+            name = cmds.textFieldGrp(
+                l="Name: ",
+                tx=s.anim.data["name"],
+                adj=2,
+                tcc=lambda x: s.valid(name, s.updateName(x)))
+            frame = cmds.intFieldGrp(
+                l="Frame Range: ",
+                nf=2,
+                v1=s.anim.data["range"][0],
+                v2=s.anim.data["range"][1],
+                cc= lambda x, y: s.valid(frame, s.updateRange(x,y))
             )
-            cmds.iconTextCheckBox(
-                i="Mute_OFF.png",
-                si="Mute_ON.png",
-                v=True if enable and layer in s.anim.data["layers"]["mute"] else False,
-                en=enable,
-                cc=lambda x: s.updateLayer(layer, "mute", x)
-            )
-            cmds.text(
-                l="|    " * s.layers[layer]["depth"] + layer if enable else layer,
-                al="left",
-                en=enable,
-            )
-            cmds.setParent("..")
-        for layer in (reversed(["BaseAnimation"] + s.layers.keys())):
-            addLayer(layer)
-        cmds.showWindow(window)
+            title("Animation Layers")
+            cmds.scrollLayout(cr=True, bgc=(0.2,0.2,0.2))
+            def addLayer(layer):
+                enable = False if layer == "BaseAnimation" else True
+                cmds.rowLayout(nc=3, adj=3)
+                cmds.iconTextCheckBox(
+                    i="Solo_OFF.png",
+                    si="Solo_ON.png",
+                    v=True if enable and layer in s.anim.data["layers"]["solo"] else False,
+                    en=enable,
+                    cc=lambda x: s.updateLayer(layer, "solo", x)
+                )
+                cmds.iconTextCheckBox(
+                    i="Mute_OFF.png",
+                    si="Mute_ON.png",
+                    v=True if enable and layer in s.anim.data["layers"]["mute"] else False,
+                    en=enable,
+                    cc=lambda x: s.updateLayer(layer, "mute", x)
+                )
+                cmds.text(
+                    l="|    " * s.layers[layer]["depth"] + layer if enable else layer,
+                    al="left",
+                    en=enable,
+                )
+                cmds.setParent("..")
+            for layer in (reversed(["BaseAnimation"] + s.layers.keys())):
+                addLayer(layer)
+            cmds.showWindow(window)
     def valid(s, element, ok):
         if ok:
             cmds.control(element, e=True, bgc=(0.3,1,0.3))
         else:
             cmds.control(element, e=True, bgc=(1,0.4,0.4))
+    @report.Report()
     def updateName(s, text):
         text = text.strip()
         if text:
@@ -213,12 +211,14 @@ class AnimationGUI(object):
                 s.change()
                 return True
         return False
+    @report.Report()
     def updateRange(s, mini, maxi):
         if mini < maxi:
             s.anim.data["range"] = [mini, maxi]
             s.change()
             return True
         return False
+    @report.Report()
     def updateLayer(s, layer, attr, value):
         if value:
             s.anim.data["layers"][attr].append(layer)
@@ -231,18 +231,21 @@ class MainWindow(object):
     Display animations
     """
     def __init__(s):
-        # Build window
-        name = "GameAnimExportWindow"
-        s.animationData = []
-        if cmds.window(name, ex=True):
-            cmds.deleteUI(name)
-        s.window = cmds.window(name, t="Animations", rtf=True)
-        s.wrapper = cmds.columnLayout(adj=True)
-        s.buildSelector()
-        cmds.showWindow(s.window)
-        cmds.scriptJob(e=["PostSceneRead", s.buildSelector], p=s.window)
-        cmds.scriptJob(e=["NewSceneOpened", s.buildSelector], p=s.window)
-        cmds.scriptJob(e=["timeChanged", s.highlightAnimation], p=s.window)
+        with report.Report():
+            # Build window
+            name = "GameAnimExportWindow"
+            s.animationData = []
+            if cmds.window(name, ex=True):
+                cmds.deleteUI(name)
+            s.window = cmds.window(name, t="Animations", rtf=True)
+            s.wrapper = cmds.columnLayout(adj=True)
+            s.buildSelector()
+            cmds.showWindow(s.window)
+            cmds.scriptJob(e=["PostSceneRead", s.buildSelector], p=s.window)
+            cmds.scriptJob(e=["NewSceneOpened", s.buildSelector], p=s.window)
+            cmds.scriptJob(e=["timeChanged", s.highlightAnimation], p=s.window)
+
+    @report.Report()
     def buildSelector(s):
         s.animationData = []
         dataNameBase = "GameAnimExportData"
@@ -281,6 +284,7 @@ class MainWindow(object):
             c=lambda x: s.buildCharacter(dataName)
         )
 
+    @report.Report()
     def buildCharacter(s, dataName):
         s.dataName = dataName
         s.dirty = False
@@ -356,6 +360,7 @@ class MainWindow(object):
         s.displayExportSelection(selWrapper, s.data["objs"])
         s.displayExportFolders(dirWrapper, s.data["dirs"])
         s.highlightAnimation()
+    @report.Report()
     def save(s):
         saveInfo(s.dataName, s.data)
     def clearElement(s, element):
@@ -376,6 +381,7 @@ class MainWindow(object):
             cmds.control(element, e=True, bgc=(1,0.4,0.4))
     def extractAnimationData(s, anims):
         return sorted([a.data for a in anims], key=lambda x: x["range"][0])
+    @report.Report()
     def setAnimation(s, anim):
         cmds.playbackOptions(
             e=True,
@@ -391,6 +397,7 @@ class MainWindow(object):
             if name.lower().replace(" ", "_") not in [a.data["name"].lower().replace(" ", "_") for a in s.animationData]:
                 return True
         return False
+    @report.Report()
     def addAnimation(s, listElement):
         def dataChanged():
             s.data["anim"] = s.extractAnimationData(s.animationData)
@@ -410,6 +417,7 @@ class MainWindow(object):
         s.save()
         AnimationGUI(anim, s.validateAnimName, dataChanged)
         s.displayAnimations(listElement, s.animationData)
+    @report.Report()
     def removeAnimation(s, listElement, anim):
         if cmds.layout(listElement, ex=True):
             cmds.deleteUI(listElement)
@@ -418,12 +426,14 @@ class MainWindow(object):
             s.data["anim"] = s.extractAnimationData(s.animationData)
             s.save()
         print "Removing Animation:", anim.data["name"]
+    @report.Report()
     def editAnimation(s, listElement, anim):
         def dataChanged():
             s.data["anim"] = s.extractAnimationData(s.animationData)
             s.save()
             s.displayAnimations(listElement, s.animationData)
         AnimationGUI(anim, s.validateAnimName, dataChanged)
+    @report.Report()
     def displayAnimations(s, listElement, items):
         if items:
             s.clearElement(listElement)
@@ -485,6 +495,7 @@ class MainWindow(object):
                 s.displayAnim[item] = row
             for item in sorted(items, key=lambda x: x.data["name"]):
                 addAnim(item)
+    @report.Report()
     def highlightAnimation(s):
         if s.animationData:
             frame = cmds.currentTime(q=True)
@@ -505,6 +516,7 @@ class MainWindow(object):
                         if cmds.layout(row, ex=True):
                             cmds.layout(row, e=True, bgc=[0.25,0.25,0.25])
                             s.dirty = True
+    @report.Report()
     def addExportSelection(s, listElement, items):
         if items:
             for item in items:
@@ -515,6 +527,7 @@ class MainWindow(object):
             s.displayExportSelection(listElement, s.data["objs"])
         else:
             cmds.confirmDialog(t="Oh no!", m="You need to select something.")
+    @report.Report()
     def removeExportSelection(s, listElement, item):
         if cmds.layout(listElement, ex=True):
             cmds.deleteUI(listElement)
@@ -527,6 +540,7 @@ class MainWindow(object):
         s.save()
         print "Cleared Export Selection"
         s.displayExportSelection(listElement, [])
+    @report.Report()
     def displayExportSelection(s, listElement, items):
         s.clearElement(listElement)
         if items:
@@ -572,6 +586,7 @@ class MainWindow(object):
                 )
             for item in items:
                 addSel(item)
+    @report.Report()
     def addExportFolder(s, listElement):
         folder = cmds.fileDialog2(ds=2, cap="Select a Folder.", fm=3, okc="Select Folder")
         if folder:
@@ -584,6 +599,7 @@ class MainWindow(object):
                 s.data["dirs"].append(folder)
                 s.save()
                 s.displayExportFolders(listElement, s.data["dirs"])
+    @report.Report()
     def removeExportFolder(s, listElement, path):
         if cmds.layout(listElement, ex=True):
             cmds.deleteUI(listElement)
@@ -596,6 +612,7 @@ class MainWindow(object):
         s.save()
         print "Cleared Export Folders"
         s.displayExportFolders(listElement, [])
+    @report.Report()
     def displayExportFolders(s, listElement, items):
         s.clearElement(listElement)
         if items:
